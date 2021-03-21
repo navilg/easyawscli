@@ -71,7 +71,7 @@ def startEC2():
     print("Instances to start: ",ec2_instances)
 
     if ec2_instances is None:
-        print("No instances to start. Exiting...")
+        print("No stopped instances to start. Exiting...")
         exit(0)
 
     confirm = str(input("Do you confirm ? (Type 'confirm'): "))
@@ -95,7 +95,38 @@ def startEC2():
     return instances_started,instance_state_changed
 
 def stopEC2():
-    print("stopEC2")
+    region,session = login()
+    print("Login successful")
+    print("\n\n---Stop EC2 Instance---\n")
+    tagname = str(input("Enter tag name: "))
+    tagvalue = str(input("Enter tag value: "))
+    print("Stoping instances with tag","'"+tagname+":", tagvalue+"'","in region", region)
+    ec2_instances = listEC2(region,'running',tagname,tagvalue,session)
+    print("Instances to stop: ",ec2_instances)
+
+    if ec2_instances is None:
+        print("No running instances to stop. Exiting...")
+        exit(0)
+
+    confirm = str(input("Do you confirm ? (Type 'confirm'): "))
+    if confirm != 'confirm':
+        print("You seem to be confused. Exiting.")
+        exit(0)
+    
+    print("Stopping Instances...")
+    instance_state_changed = 0
+    instances_stopped = []
+
+    for instance in ec2_instances:
+        print("Stopping instance ",instance)
+        try:
+            instance.stop()
+            instances_stopped.append(instance)
+            instance_state_changed += 1
+        except ClientError as e:
+            print(e.response['Error']['Message'])
+    
+    return instances_stopped,instance_state_changed
 
 def tagInstance():
     print("tagInstance")
@@ -131,7 +162,12 @@ if __name__ == "__main__":
         else:
             exit(0)
     elif choice == 2:
-        stopEC2()
+        instances_stopped,number_of_instance_stopped = stopEC2()
+        print(number_of_instance_stopped, "Instances stopped", instances_stopped)
+        if number_of_instance_stopped == 0:
+            exit(1)
+        else:
+            exit(0)
     elif choice == 3:
         tagInstance()
     elif choice == 4:
