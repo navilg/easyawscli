@@ -11,21 +11,13 @@ def mainmenu():
     print("0. Exit\n1. Start EC2 instance\n2. Stop EC2 instance\n3. Tag an instance\n4. Add IP in SG\n5. Remove an IP from SG\n6. Autoscaling Group suspend process")
     mainmenu_choice = int(input("Choose from above (0 to 5): "))
     
-    return(mainmenu_choice)
+    return mainmenu_choice
 
-def listEC2(region,state,tagname,tagvalue,session):
-    ec2_instances = []
-    ec2_obj = session.resource('ec2',region_name=region)
-    filters = [{'Name': 'instance-state-name','Values': [state]},{'Name': 'tag:'+tagname,'Values': [tagvalue]}]
+def submenu():
+    print("\n0. Exit\n1. Repeat\n2. Main Menu")
+    subchoice = int(input("Choose from above (0 to 2): "))
 
-    for instance in ec2_obj.instances.filter(Filters=filters):
-        ip = instance.private_ip_address
-        state_name = instance.state['Name']
-        print("ip:{}, state:{}".format(ip,state_name))
-        ec2_instances.append(instance)
-
-        return(ec2_instances)
-
+    return subchoice
 
 def login():
     print("\n\n---Login---\n")
@@ -60,24 +52,36 @@ def login():
     
     return region,session
 
-def startEC2():
-    region,session = login()
-    print("Login successful")
+def listEC2(region,state,tagname,tagvalue,session):
+    print("Searching instances with tag","'"+tagname+":", tagvalue+"'","in region", region)
+    ec2_instances = []
+    ec2_obj = session.resource('ec2',region_name=region)
+    filters = [{'Name': 'instance-state-name','Values': [state]},{'Name': 'tag:'+tagname,'Values': [tagvalue]}]
+
+    for instance in ec2_obj.instances.filter(Filters=filters):
+        ip = instance.private_ip_address
+        state_name = instance.state['Name']
+        print("ip:{}, state:{}".format(ip,state_name))
+        ec2_instances.append(instance)
+
+        return ec2_instances
+
+def startEC2(region,session):
     print("\n\n---Start EC2 Instance---\n")
+    print("Active region:",region)
     tagname = str(input("Enter tag name: "))
     tagvalue = str(input("Enter tag value: "))
-    print("Starting instances with tag","'"+tagname+":", tagvalue+"'","in region", region)
     ec2_instances = listEC2(region,'stopped',tagname,tagvalue,session)
     print("Instances to start: ",ec2_instances)
 
     if ec2_instances is None:
-        print("No stopped instances to start. Exiting...")
-        exit(0)
+        print("No stopped instances to start.")
+        return [],0
 
     confirm = str(input("Do you confirm ? (Type 'confirm'): "))
     if confirm != 'confirm':
-        print("You seem to be confused. Exiting.")
-        exit(0)
+        print("You seem to be confused.")
+        return [],0
     
     print("Starting Instances...")
     instance_state_changed = 0
@@ -94,24 +98,22 @@ def startEC2():
     
     return instances_started,instance_state_changed
 
-def stopEC2():
-    region,session = login()
-    print("Login successful")
+def stopEC2(region,session):
     print("\n\n---Stop EC2 Instance---\n")
+    print("Active region:",region)
     tagname = str(input("Enter tag name: "))
     tagvalue = str(input("Enter tag value: "))
-    print("Stoping instances with tag","'"+tagname+":", tagvalue+"'","in region", region)
     ec2_instances = listEC2(region,'running',tagname,tagvalue,session)
     print("Instances to stop: ",ec2_instances)
 
     if ec2_instances is None:
-        print("No running instances to stop. Exiting...")
-        exit(0)
+        print("No running instances to stop.")
+        return [],0
 
     confirm = str(input("Do you confirm ? (Type 'confirm'): "))
     if confirm != 'confirm':
-        print("You seem to be confused. Exiting.")
-        exit(0)
+        print("You seem to be confused.")
+        return [],0
     
     print("Stopping Instances...")
     instance_state_changed = 0
@@ -154,31 +156,40 @@ if __name__ == "__main__":
     choice = mainmenu()
     print(choice)
 
-    if choice == 1:
-        instances_started,number_of_instance_started = startEC2()
-        print(number_of_instance_started, "Instances started", instances_started)
-        if number_of_instance_started == 0:
-            exit(1)
-        else:
+    region,session = login()
+    print("Login successful")
+
+    while True:
+
+        if choice == 1:
+            instances_started,number_of_instance_started = startEC2(region,session)
+            print(number_of_instance_started, "Instances started", instances_started)
+        elif choice == 2:
+            instances_stopped,number_of_instance_stopped = stopEC2(region,session)
+            print(number_of_instance_stopped, "Instances stopped", instances_stopped)
+        elif choice == 3:
+            tagInstance()
+        elif choice == 4:
+            addIPinEC2()
+        elif choice == 5:
+            removeIPfromEC2()
+        elif choice == 6:
+            suspendProcess()
+        elif choice == 0:
             exit(0)
-    elif choice == 2:
-        instances_stopped,number_of_instance_stopped = stopEC2()
-        print(number_of_instance_stopped, "Instances stopped", instances_stopped)
-        if number_of_instance_stopped == 0:
-            exit(1)
         else:
+            print("Wrong choice")
+            exit(1)
+        
+        subchoice = submenu()
+        if subchoice == 0:
             exit(0)
-    elif choice == 3:
-        tagInstance()
-    elif choice == 4:
-        addIPinEC2()
-    elif choice == 5:
-        removeIPfromEC2()
-    elif choice == 6:
-        suspendProcess()
-    elif choice == 0:
-        exit(0)
-    else:
-        print("Wrong choice")
-        exit(1)
+        elif subchoice == 1:
+            continue
+        elif subchoice == 2:
+            choice = mainmenu()
+        else:
+            print("Wrong choice")
+            exit(1)
+
 
