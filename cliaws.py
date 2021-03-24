@@ -64,7 +64,7 @@ def listEC2(region,state,tagname,tagvalue,session):
         print("ip:{}, state:{}".format(ip,state_name))
         ec2_instances.append(instance)
 
-        return ec2_instances
+    return ec2_instances
 
 def startEC2(region,session):
     print("\n\n---Start EC2 Instance---\n")
