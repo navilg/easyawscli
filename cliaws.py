@@ -4,20 +4,23 @@ from os import system, name
 import boto3
 from botocore.exceptions import ClientError
 import getpass
-#from SecureString import clearmem
+# from SecureString import clearmem
 
-def mainmenu():
+
+def main_menu():
     print("AWS CLI Interface\n")
     print("0. Exit\n1. Start EC2 instance\n2. Stop EC2 instance\n3. Tag an instance\n4. Add IP in SG\n5. Remove an IP from SG\n6. Autoscaling Group suspend process")
-    mainmenu_choice = int(input("Choose from above (0 to 5): "))
+    main_menu_choice = int(input("Choose from above (0 to 5): "))
     
-    return mainmenu_choice
+    return main_menu_choice
+
 
 def submenu():
     print("\n0. Exit\n1. Repeat\n2. Main Menu")
     subchoice = int(input("Choose from above (0 to 2): "))
 
     return subchoice
+
 
 def login():
     print("\n\n---Login---\n")
@@ -28,7 +31,7 @@ def login():
     except Exception as error: 
         print('ERROR', error)
         exit(1)
-    
+
     try:
         session = boto3.Session(
         aws_access_key_id = key,
@@ -40,17 +43,24 @@ def login():
         print(e.response['Error']['Message'])
         #clearmem(secret)
         exit(1)
-    
+
     print("Validating your credentials...")
-    sts = session.client('sts')
     try:
+        sts = session.client('sts')
         sts.get_caller_identity()
     except ClientError as e:
         print(e.response['Error']['Message'])
         print("Login failed")
         exit(1)
+    except Exception as e:
+        print(e, ":", type(e).__name__)
+        if type(e).__name__ == "EndpointConnectionError":
+            print("'"+region+"'","may not be a valid AWS region.")
+        print("Login Failed")
+        exit(1)
     
     return region,session
+
 
 def listEC2(region,state,tagname,tagvalue,session):
     print("Searching instances with tag","'"+tagname+":", tagvalue+"'","in region", region)
@@ -66,6 +76,7 @@ def listEC2(region,state,tagname,tagvalue,session):
 
     return ec2_instances
 
+
 def startEC2(region,session):
     print("\n\n---Start EC2 Instance---\n")
     print("Active region:",region)
@@ -74,7 +85,8 @@ def startEC2(region,session):
     ec2_instances = listEC2(region,'stopped',tagname,tagvalue,session)
     print("Instances to start: ",ec2_instances)
 
-    if ec2_instances is None:
+    # If list is empty
+    if not ec2_instances:
         print("No stopped instances to start.")
         return [],0
 
@@ -98,6 +110,7 @@ def startEC2(region,session):
     
     return instances_started,instance_state_changed
 
+
 def stopEC2(region,session):
     print("\n\n---Stop EC2 Instance---\n")
     print("Active region:",region)
@@ -106,7 +119,8 @@ def stopEC2(region,session):
     ec2_instances = listEC2(region,'running',tagname,tagvalue,session)
     print("Instances to stop: ",ec2_instances)
 
-    if ec2_instances is None:
+    # If list is empty
+    if not ec2_instances:
         print("No running instances to stop.")
         return [],0
 
@@ -130,17 +144,22 @@ def stopEC2(region,session):
     
     return instances_stopped,instance_state_changed
 
+
 def tagInstance():
     print("tagInstance")
+
 
 def addIPinEC2():
     print("addIPinEC2")
 
+
 def removeIPfromEC2():
     print("removeIPfromEC2")
 
+
 def suspendProcess():
     print("suspendProcess")
+
 
 def clear():
     print("Clear")
@@ -152,8 +171,9 @@ def clear():
     else: 
         _ = system('clear') 
 
+
 if __name__ == "__main__":
-    choice = mainmenu()
+    choice = main_menu()
     print(choice)
 
     region,session = login()
@@ -187,7 +207,7 @@ if __name__ == "__main__":
         elif subchoice == 1:
             continue
         elif subchoice == 2:
-            choice = mainmenu()
+            choice = main_menu()
         else:
             print("Wrong choice")
             exit(1)
