@@ -4,13 +4,14 @@ from os import system, name
 import boto3
 from botocore.exceptions import ClientError
 import getpass
+import requests
 import datetime
 # from SecureString import clearmem
 
 
 def main_menu():
     print("\n\n---Main Menu---\n")
-    print("0. Exit/Logout\n1. Start EC2 instance\n2. Stop EC2 instance\n3. Tag an instance\n4. Add IP in SG\n5. Remove an IP from SG\n6. Autoscaling Group suspend process")
+    print("0. Exit/Logout\n1. Start EC2 instance\n2. Stop EC2 instance\n3. Tag an instance\n4. Add rule in Security Group\n5. Remove an IP from SG\n6. Autoscaling Group suspend process")
     main_menu_choice = int(input("Choose from above (0 to 5): "))
     
     return main_menu_choice
@@ -67,7 +68,10 @@ def get_ec2(region,state,tagname,tagvalue,session):
     print("Searching instances with tag","'"+tagname+":", tagvalue+"'","in region", region)
     reservations = []
     ec2_obj = session.client('ec2',region_name=region)
-    filters = [{'Name': 'instance-state-name','Values': [state]},{'Name': 'tag:'+tagname,'Values': [tagvalue]}]
+    if state == "all":
+        filters = [{'Name': 'tag:' + tagname, 'Values': [tagvalue]}]
+    else:
+        filters = [{'Name': 'instance-state-name','Values': [state]},{'Name': 'tag:'+tagname,'Values': [tagvalue]}]
 
     reservations = ec2_obj.describe_instances(Filters=filters).get("Reservations")
 
@@ -137,8 +141,6 @@ def stopEC2(region,session):
         print("No running instances to stop.")
         return [],0
 
-    ###################################
-
     print("\nBelow instances found with tag '" + tagname + "':'" + tagvalue + "'")
     print("No.\tInstance_ID\t\t" + tagname + "\t\tPrivate_IP_Address\t\tLaunch_Time")
     i = 0
@@ -183,10 +185,101 @@ def tagInstance():
     print("tagInstance")
 
 
-def addIPinEC2():
-    print("addIPinEC2")
+def add_rule_in_sg():
+    print("\n\n---Add rule in Security Group---\n")
+    print("Active region:", region)
+    print("Enter tag name and its value to filter the EC2 instances.")
+    tagname = str(input("Enter tag name: "))
+    tagvalue = str(input("Enter tag value: "))
+    reservations, ec2_obj = get_ec2(region, 'all', tagname, tagvalue, session)
+
+    # If list is empty
+    if not reservations:
+        print("No instances found.")
+        return [], 0
+
+    print("\nBelow instances found with tag '" + tagname + "':'" + tagvalue + "'")
+    print("No.\tInstance_ID\t\t" + tagname + "\t\tVPC_ID\t\tPrivate_IP_Address\t\tLaunch_Time")
+    i = 0
+    for reservation in reservations:
+        for instance in reservation["Instances"]:
+            i += 1
+            instance_id = instance["InstanceId"]
+            private_ip = instance["PrivateIpAddress"]
+            launch_time = instance["LaunchTime"]
+            vpc_id = instance["VpcId"]
+            print(str(i) + "\t" + str(instance_id) + "\t" + tagvalue + "\t\t" + str(vpc_id) + "\t\t" + str(private_ip) + "\t\t" + str(launch_time))
 
 
+    print("\nChoose one instances from above list (0 to " + str(i) + ")")
+    instance_choice = int(input("Example: 3: "))
+
+    print("Below Security Groups are attached to chosen instance.")
+    print("No.\tSecurity_Group_ID\t\tSecurity_Group_Name")
+
+    i = 0
+    group_id_list = []
+    group_name_list = []
+    for reservation in reservations:
+        for instance in reservation["Instances"]:
+            i += 1
+            if i == instance_choice:
+                network_interfaces = instance["NetworkInterfaces"]
+                for network_interface in network_interfaces:
+                    groups = network_interface["Groups"]
+                    j = 0
+                    for group in groups:
+                        j += 1
+                        group_name = group["GroupName"]
+                        group_id = group["GroupId"]
+                        group_name_list.append(group_name)
+                        group_id_list.append(group_id)
+                        print(str(j) + "\t" + str(group_id) + "\t\t" + group_name)
+                break
+    security_group_choice = int(input("Choose one security group from above: "))
+    print("0. Exit\n1. Inbound/Ingress\n2. Outbound/Egress")
+    rule_type_choice = int(input("Choose from above: "))
+    ip_protocol = str(input("Enter IP Protocol (tcp/udp): ")).lower()
+    to_port = int(input("Enter destination port: "))
+    your_public_ip = str(requests.get('http://ipinfo.io/json').json()['ip']) + "/32"
+    ip_range = str(input("Enter CIDR IP (default: {}): ".format(your_public_ip)))
+
+    if ip_range == "":
+        ip_range = your_public_ip
+
+    ip_perm = [{'IpProtocol': ip_protocol, 'ToPort': to_port,  'FromPort': to_port, 'IpRanges': [{'CidrIp': ip_range}]}]
+
+    if rule_type_choice == 1:
+        ec2_obj.authorize_security_group_ingress(GroupId=group_id_list[security_group_choice - 1],IpPermissions=ip_perm)
+        print("Rule added to security group",group_id_name[security_group_choice - 1])
+
+    exit(0)
+
+    """
+    confirm = str(input("Do you confirm ? (Type 'confirm'): "))
+    if confirm != 'confirm':
+        print("You seem to be confused.")
+        return [], 0
+
+    print("Stopping Instances...")
+    instance_state_changed = 0
+    instances_stopped = []
+
+    i = 0
+    for reservation in reservations:
+        for instance in reservation["Instances"]:
+            i += 1
+            if str(i) in choice_list:
+                try:
+                    print("Stopping instance ", instance["InstanceId"])
+                    ec2_obj.stop_instances(InstanceIds=[instance["InstanceId"]])
+                    instances_stopped.append(instance["InstanceId"])
+                    instance_state_changed += 1
+                except ClientError as e:
+                    print(e.response['Error']['Message'])
+
+    return instances_stopped, instance_state_changed
+    """
 def removeIPfromEC2():
     print("removeIPfromEC2")
 
@@ -227,7 +320,7 @@ if __name__ == "__main__":
         elif choice == 3:
             tagInstance()
         elif choice == 4:
-            addIPinEC2()
+            add_rule_in_sg()
         elif choice == 5:
             removeIPfromEC2()
         elif choice == 6:
