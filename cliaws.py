@@ -4,19 +4,20 @@ from os import system, name
 import boto3
 from botocore.exceptions import ClientError
 import getpass
+import datetime
 # from SecureString import clearmem
 
 
 def main_menu():
-    print("AWS CLI Interface\n")
-    print("0. Exit\n1. Start EC2 instance\n2. Stop EC2 instance\n3. Tag an instance\n4. Add IP in SG\n5. Remove an IP from SG\n6. Autoscaling Group suspend process")
+    print("\n\n---Main Menu---\n")
+    print("0. Exit/Logout\n1. Start EC2 instance\n2. Stop EC2 instance\n3. Tag an instance\n4. Add IP in SG\n5. Remove an IP from SG\n6. Autoscaling Group suspend process")
     main_menu_choice = int(input("Choose from above (0 to 5): "))
     
     return main_menu_choice
 
 
 def submenu():
-    print("\n0. Exit\n1. Repeat\n2. Main Menu")
+    print("\n0. Logout\n1. Repeat\n2. Main Menu")
     subchoice = int(input("Choose from above (0 to 2): "))
 
     return subchoice
@@ -27,7 +28,7 @@ def login():
     region = str(input("Enter instance region: ")).lower()
     key = str(input("Enter AWS access key: "))
     try: 
-        secret = getpass.getpass(prompt='Enter AWS secret: ') 
+        secret = getpass.getpass(prompt='Enter AWS secret (Input text will NOT be visible): ')
     except Exception as error: 
         print('ERROR', error)
         exit(1)
@@ -62,34 +63,43 @@ def login():
     return region,session
 
 
-def listEC2(region,state,tagname,tagvalue,session):
+def get_ec2(region,state,tagname,tagvalue,session):
     print("Searching instances with tag","'"+tagname+":", tagvalue+"'","in region", region)
-    ec2_instances = []
-    ec2_obj = session.resource('ec2',region_name=region)
+    reservations = []
+    ec2_obj = session.client('ec2',region_name=region)
     filters = [{'Name': 'instance-state-name','Values': [state]},{'Name': 'tag:'+tagname,'Values': [tagvalue]}]
 
-    for instance in ec2_obj.instances.filter(Filters=filters):
-        ip = instance.private_ip_address
-        state_name = instance.state['Name']
-        print("ip:{}, state:{}".format(ip,state_name))
-        ec2_instances.append(instance)
+    reservations = ec2_obj.describe_instances(Filters=filters).get("Reservations")
 
-    return ec2_instances
-
+    return reservations,ec2_obj
 
 def startEC2(region,session):
     print("\n\n---Start EC2 Instance---\n")
     print("Active region:",region)
     tagname = str(input("Enter tag name: "))
     tagvalue = str(input("Enter tag value: "))
-    ec2_instances = listEC2(region,'stopped',tagname,tagvalue,session)
-    print("Instances to start: ",ec2_instances)
+    reservations,ec2_obj = get_ec2(region,'stopped',tagname,tagvalue,session)
 
     # If list is empty
-    if not ec2_instances:
+    if not reservations:
         print("No stopped instances to start.")
         return [],0
 
+    print("\nBelow instances found with tag '" + tagname + "':'" + tagvalue + "'")
+    print("No.\tInstance_ID\t\t" + tagname + "\t\tPrivate_IP_Address\t\tLaunch_Time")
+    i = 0
+    for reservation in reservations:
+        for instance in reservation["Instances"]:
+            i += 1
+            instance_id = instance["InstanceId"]
+            private_ip = instance["PrivateIpAddress"]
+            launch_time = instance["LaunchTime"]
+            print(str(i)+"\t"+str(instance_id)+"\t"+tagvalue+"\t\t"+str(private_ip)+"\t\t"+str(launch_time))
+
+    print("\nChoose instances to start from above list (0 to "+str(i)+"). Separate them by commas.")
+    start_choice = input("Example: 1,3,4: ")
+    choice_list = start_choice.rstrip().split(",")
+    print("Instances to start:", choice_list)
     confirm = str(input("Do you confirm ? (Type 'confirm'): "))
     if confirm != 'confirm':
         print("You seem to be confused.")
@@ -99,15 +109,19 @@ def startEC2(region,session):
     instance_state_changed = 0
     instances_started = []
 
-    for instance in ec2_instances:
-        print("Starting instance ",instance)
-        try:
-            instance.start()
-            instances_started.append(instance)
-            instance_state_changed += 1
-        except ClientError as e:
-            print(e.response['Error']['Message'])
-    
+    i = 0
+    for reservation in reservations:
+        for instance in reservation["Instances"]:
+            i += 1
+            if str(i) in choice_list:
+                try:
+                    print("Starting instance ", instance["InstanceId"])
+                    ec2_obj.start_instances(InstanceIds=[instance["InstanceId"]])
+                    instances_started.append(instance["InstanceId"])
+                    instance_state_changed += 1
+                except ClientError as e:
+                    print(e.response['Error']['Message'])
+
     return instances_started,instance_state_changed
 
 
@@ -116,32 +130,52 @@ def stopEC2(region,session):
     print("Active region:",region)
     tagname = str(input("Enter tag name: "))
     tagvalue = str(input("Enter tag value: "))
-    ec2_instances = listEC2(region,'running',tagname,tagvalue,session)
-    print("Instances to stop: ",ec2_instances)
+    reservations,ec2_obj = get_ec2(region,'running',tagname,tagvalue,session)
 
     # If list is empty
-    if not ec2_instances:
+    if not reservations:
         print("No running instances to stop.")
         return [],0
 
+    ###################################
+
+    print("\nBelow instances found with tag '" + tagname + "':'" + tagvalue + "'")
+    print("No.\tInstance_ID\t\t" + tagname + "\t\tPrivate_IP_Address\t\tLaunch_Time")
+    i = 0
+    for reservation in reservations:
+        for instance in reservation["Instances"]:
+            i += 1
+            instance_id = instance["InstanceId"]
+            private_ip = instance["PrivateIpAddress"]
+            launch_time = instance["LaunchTime"]
+            print(str(i) + "\t" + str(instance_id) + "\t" + tagvalue + "\t\t" + str(private_ip) + "\t\t" + str(launch_time))
+
+    print("\nChoose instances to stop from above list (0 to " + str(i) + "). Separate them by commas.")
+    start_choice = input("Example: 1,3,4: ")
+    choice_list = start_choice.rstrip().split(",")
+    print("Instances to stop:", choice_list)
     confirm = str(input("Do you confirm ? (Type 'confirm'): "))
     if confirm != 'confirm':
         print("You seem to be confused.")
-        return [],0
-    
+        return [], 0
+
     print("Stopping Instances...")
     instance_state_changed = 0
     instances_stopped = []
 
-    for instance in ec2_instances:
-        print("Stopping instance ",instance)
-        try:
-            instance.stop()
-            instances_stopped.append(instance)
-            instance_state_changed += 1
-        except ClientError as e:
-            print(e.response['Error']['Message'])
-    
+    i = 0
+    for reservation in reservations:
+        for instance in reservation["Instances"]:
+            i += 1
+            if str(i) in choice_list:
+                try:
+                    print("Stopping instance ", instance["InstanceId"])
+                    ec2_obj.stop_instances(InstanceIds=[instance["InstanceId"]])
+                    instances_stopped.append(instance["InstanceId"])
+                    instance_state_changed += 1
+                except ClientError as e:
+                    print(e.response['Error']['Message'])
+
     return instances_stopped,instance_state_changed
 
 
@@ -173,9 +207,12 @@ def clear():
 
 
 if __name__ == "__main__":
+    print("Easy AWS CLI\n")
     choice = main_menu()
     print(choice)
-
+    if choice == 0:
+        print("Exiting...")
+        exit(0)
     region,session = login()
     print("Login successful")
 
