@@ -13,7 +13,7 @@ def main_menu():
     print("\n\n---Main Menu---\n")
     print("0. Logout\n1. Start EC2 instance\n2. Stop EC2 instance\n3. Tag an instance\n4. Add inbound rule in Security Group")
     print("5. Remove an inbound rule from Security Group\n6. Autoscaling Group suspend process")
-    main_menu_choice = int(input("Choose from above (0 to 5) >> "))
+    main_menu_choice = int(input("Choose from above (0 to 6) >> "))
     
     return main_menu_choice
 
@@ -27,7 +27,7 @@ def submenu():
 
 def login():
     print("\n\n---Login---\n")
-    region = str(input("Enter instance region >> ")).lower()
+    region = str(input("Enter an AWS region >> ")).lower()
     key = str(input("Enter AWS access key >> "))
     try: 
         secret = getpass.getpass(prompt='Enter AWS secret (Input text will NOT be visible) >> ')
@@ -190,7 +190,7 @@ def tagInstance():
     print("Tag Instance. Coming soon...")
 
 
-def add_rule_in_sg(region,session):
+def add_inbound_rule_in_sg(region,session):
     print("\n\n---Add inbound rule in Security Group---\n")
     print("Active region:", region)
     print("Enter tag name and its value to filter the EC2 instances.")
@@ -226,40 +226,63 @@ def add_rule_in_sg(region,session):
     print("No.\tSecurity_Group_ID\t\tSecurity_Group_Name")
 
     i = 0
-    group_id_list = []
-    group_name_list = []
+    security_group_id_list = []
+    security_group_name_list = []
     for reservation in reservations:
         for instance in reservation["Instances"]:
             i += 1
             if i == instance_choice:
-                network_interfaces = instance["NetworkInterfaces"]
-                for network_interface in network_interfaces:
-                    groups = network_interface["Groups"]
-                    j = 0
-                    for group in groups:
-                        j += 1
-                        group_name = group["GroupName"]
-                        group_id = group["GroupId"]
-                        group_name_list.append(group_name)
-                        group_id_list.append(group_id)
-                        print(str(j) + "\t" + str(group_id) + "\t\t" + group_name)
+                security_groups = instance["SecurityGroups"]
+                j = 0
+                for security_group in security_groups:
+                    j += 1
+                    security_group_name = security_group["GroupName"]
+                    security_group_id = security_group["GroupId"]
+                    security_group_name_list.append(security_group_name)
+                    security_group_id_list.append(security_group_id)
+                    print(str(j) + "\t" + str(security_group_id) + "\t\t" + security_group_name)
                 break
 
-    print("Choose one security group from above (0 to", j," ). Type 0 to return to submenu.")
+    print("\nChoose one security group from above (0 to", j,"). Type 0 to return to submenu.")
     security_group_choice = int(input(">> "))
 
     if security_group_choice == 0:
         return ""
 
+    security_group_details = ec2_obj.describe_security_groups(GroupIds=[security_group_id_list[security_group_choice - 1]])
+
+    print("Below inbound rules are currently authorized to security group", security_group_id_list[security_group_choice - 1])
+    print("No.\tPorts\t\tIP_Protocol\tSource\t\t\t\tDescription")
+    i = 0
+    for ip_permission in security_group_details['SecurityGroups'][0]['IpPermissions']:
+        i += 1
+        current_ip_protocol = ip_permission['IpProtocol']
+        current_ip_ranges = ip_permission['IpRanges']
+        current_cidrs = []
+        current_description = []
+        for current_ip_range in current_ip_ranges:
+            current_cidrs.append(current_ip_range['CidrIp'])
+            if 'Description' in current_ip_range:
+                current_description.append(current_ip_range['Description'])
+            else:
+                current_description.append('')
+        current_to_port = ip_permission['ToPort']
+        print(str(i) + "\t" + str(current_to_port) + "\t\t" + str(current_ip_protocol) + "\t\t" + str(current_cidrs) + "\t\t\t\t" + str(current_description))
+
+    if i == 0:
+        print("No inbound rule authorized to security group", security_group_id_list[security_group_choice - 1])
+
+    print("\nEnter below details for new inbound rule.")
     ip_protocol = str(input("Enter IP Protocol (tcp/udp) >> ")).lower()
     to_port = int(input("Enter port number >> "))
     your_public_ip = str(requests.get('http://ipinfo.io/json').json()['ip']) + "/32"
     ip_range = str(input("Enter CIDR IP (default: {}) >> ".format(your_public_ip)))
+    description = str(input("Enter description (default: '') >> "))
 
     if ip_range == "":
         ip_range = your_public_ip
 
-    ip_perm = [{'IpProtocol': ip_protocol, 'ToPort': to_port,  'FromPort': to_port, 'IpRanges': [{'CidrIp': ip_range}]}]
+    ip_perm = [{'IpProtocol': ip_protocol, 'ToPort': to_port,  'FromPort': to_port, 'IpRanges': [{'CidrIp': ip_range, 'Description': description}]}]
 
     print(ip_perm)
     confirm = str(input("Do you confirm ? (Type 'confirm') >> "))
@@ -267,19 +290,163 @@ def add_rule_in_sg(region,session):
         print("You seem to be confused.")
         return ""
 
-    print("Adding inbound rule", ip_perm, "to", group_id_list[security_group_choice - 1])
+    print("Adding inbound rule", ip_perm, "to", security_group_id_list[security_group_choice - 1])
     try:
-        ec2_obj.authorize_security_group_ingress(GroupId=group_id_list[security_group_choice - 1],IpPermissions=ip_perm)
-        print("Inbound rule added to security group", group_id_list[security_group_choice - 1])
+        ec2_obj.authorize_security_group_ingress(GroupId=security_group_id_list[security_group_choice - 1],IpPermissions=ip_perm)
+        print("Inbound rule added to security group", security_group_id_list[security_group_choice - 1])
     except ClientError as e:
         print(e.response['Error']['Message'])
         return ""
 
-    return str(group_id_list[security_group_choice - 1])
+    return str(security_group_id_list[security_group_choice - 1])
 
 
-def remove_rule_from_sg():
-    print("Remove an inbound rule fro security group. Coming soon...")
+def remove_inbound_rule_from_sg(region,session):
+    print("\n\n---Remove an inbound rule from Security Group---\n")
+    print("Active region:", region)
+    print("Enter tag name and its value to filter the EC2 instances.")
+    tagname = str(input("Enter tag name >> "))
+    tagvalue = str(input("Enter tag value >> "))
+    reservations, ec2_obj = get_ec2(region, 'all', tagname, tagvalue, session)
+
+    # If list is empty
+    if not reservations:
+        print("No instances found.")
+        return ""
+
+    print("\nBelow instances found with tag '" + tagname + "':'" + tagvalue + "'")
+    print("No.\tInstance_ID\t\t" + tagname + "\t\tVPC_ID\t\tPrivate_IP_Address\t\tLaunch_Time")
+    i = 0
+    for reservation in reservations:
+        for instance in reservation["Instances"]:
+            i += 1
+            instance_id = instance["InstanceId"]
+            private_ip = instance["PrivateIpAddress"]
+            launch_time = instance["LaunchTime"]
+            vpc_id = instance["VpcId"]
+            print(str(i) + "\t" + str(instance_id) + "\t" + tagvalue + "\t\t" + str(vpc_id) + "\t\t" + str(
+                private_ip) + "\t\t" + str(launch_time))
+
+    print("\nChoose one instances from above list (0 to " + str(i) + "). 0 to return to submenu")
+    instance_choice = int(input("Example: 3 >> "))
+
+    if instance_choice == 0:
+        return ""
+
+    print("Below Security Groups are attached to chosen instance.")
+    print("No.\tSecurity_Group_ID\t\tSecurity_Group_Name")
+
+    i = 0
+    security_group_id_list = []
+    security_group_name_list = []
+    for reservation in reservations:
+        for instance in reservation["Instances"]:
+            i += 1
+            if i == instance_choice:
+                security_groups = instance["SecurityGroups"]
+                j = 0
+                for security_group in security_groups:
+                    j += 1
+                    security_group_name = security_group["GroupName"]
+                    security_group_id = security_group["GroupId"]
+                    security_group_name_list.append(security_group_name)
+                    security_group_id_list.append(security_group_id)
+                    print(str(j) + "\t" + str(security_group_id) + "\t\t" + security_group_name)
+                break
+
+    print("\nChoose one security group from above (0 to", j, "). Type 0 to return to submenu.")
+    security_group_choice = int(input(">> "))
+
+    if security_group_choice == 0:
+        return ""
+
+    security_group_details = ec2_obj.describe_security_groups(GroupIds=[security_group_id_list[security_group_choice - 1]])
+
+    print("Below inbound rules are authorized to security group",security_group_id_list[security_group_choice - 1])
+    print("No.\tPorts\t\tIP_Protocol\tSource\t\t\t\tDescription")
+    i = 0
+    ip_protocol_list = []
+    ip_ranges_list = []
+    to_port_list = []
+    for ip_permission in security_group_details['SecurityGroups'][0]['IpPermissions']:
+        i += 1
+        ip_protocol = ip_permission['IpProtocol']
+        ip_protocol_list.append(ip_protocol)
+        ip_ranges = ip_permission['IpRanges']
+        ip_ranges_list.append(ip_ranges)
+        cidrs = []
+        description = []
+        for ip_range in ip_ranges:
+            cidrs.append(ip_range['CidrIp'])
+            if 'Description' in ip_range:
+                description.append(ip_range['Description'])
+            else:
+                description.append('')
+        to_port = ip_permission['ToPort']
+        to_port_list.append(to_port)
+        print(str(i) + "\t" + str(to_port) + "\t\t" + str(ip_protocol) + "\t\t" + str(cidrs) + "\t\t\t\t" + str(description))
+
+    if i == 0:
+        print("No inbound rule authorized to security group",security_group_id_list[security_group_choice - 1])
+        return ""
+
+    print("Choose one of the rule to revoke from above(0 to",i,"). Type 0 to return to submenu.")
+    inbound_rule_choice = int(input(">> "))
+
+    if inbound_rule_choice == 0:
+        return ""
+
+    if len(ip_ranges_list[inbound_rule_choice - 1]) > 1:
+        j = 0
+        cidrs_list = []
+        description_list = []
+        print("There are multiple source/iprange in chosen inbound rule.")
+        print("No.\tSource\t\t\t\tDescription")
+        for ip_range in ip_ranges_list[inbound_rule_choice - 1]:
+            j += 1
+            if 'Description' in ip_range:
+                print(str(j) + "\t" + ip_range['CidrIp'] + "\t\t\t\t" + ip_range['Description'])
+                cidrs_list.append(ip_range['CidrIp'])
+                description_list.append(ip_range['Description'])
+            else:
+                print(str(j) + "\t" + ip_range['CidrIp'] + "\t\t\t\t" + "''")
+                cidrs_list.append(ip_range['CidrIp'])
+                description_list.append('')
+
+        print("\nChoose any one from above source (0 to",j,"). Type 0 to return to submenu.")
+        source_choice = int(input(">> "))
+
+        if source_choice == 0:
+            return ""
+
+        if description_list == '':
+            ip_perm = [{'IpProtocol': ip_protocol_list[inbound_rule_choice - 1],
+                        'ToPort': to_port_list[inbound_rule_choice - 1],
+                        'FromPort': to_port_list[inbound_rule_choice - 1],
+                        'IpRanges': [{'CidrIp': cidrs_list[source_choice - 1]}]}]
+        else:
+            ip_perm = [{'IpProtocol': ip_protocol_list[inbound_rule_choice - 1],
+                        'ToPort': to_port_list[inbound_rule_choice - 1],
+                        'FromPort': to_port_list[inbound_rule_choice - 1],
+                        'IpRanges': [{'CidrIp': cidrs_list[source_choice - 1], 'Description': description_list[source_choice - 1]}]}]
+    else:
+        ip_perm = [{'IpProtocol': ip_protocol_list[inbound_rule_choice - 1], 'ToPort': to_port_list[inbound_rule_choice - 1], 'FromPort': to_port_list[inbound_rule_choice - 1], 'IpRanges': ip_ranges_list[inbound_rule_choice - 1]}]
+
+    print(ip_perm)
+    confirm = str(input("Do you confirm ? (Type 'confirm') >> "))
+    if confirm != 'confirm':
+        print("You seem to be confused.")
+        return ""
+
+    print("Removing inbound rule", ip_perm, "from", security_group_id_list[security_group_choice - 1])
+    try:
+        ec2_obj.revoke_security_group_ingress(GroupId=security_group_id_list[security_group_choice - 1],IpPermissions=ip_perm)
+        print("Inbound rule removed from security group", security_group_id_list[security_group_choice - 1])
+    except ClientError as e:
+        print(e.response['Error']['Message'])
+        return ""
+
+    return str(security_group_id_list[security_group_choice - 1])
 
 
 def suspendProcess():
@@ -322,11 +489,13 @@ if __name__ == "__main__":
         elif choice == 3:
             tagInstance()
         elif choice == 4:
-            sg_updated = add_rule_in_sg(region,session)
+            sg_updated = add_inbound_rule_in_sg(region,session)
             if sg_updated != "":
                 print("Security Group", sg_updated, "updated.")
         elif choice == 5:
-            remove_rule_from_sg()
+            sg_updated = remove_inbound_rule_from_sg(region,session)
+            if sg_updated != "":
+                print("Security Group", sg_updated, "updated.")
         elif choice == 6:
             suspendProcess()
         elif choice == 0:
