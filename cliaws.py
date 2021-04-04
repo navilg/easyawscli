@@ -13,24 +13,24 @@ def main_menu():
     print("\n\n---Main Menu---\n")
     print("0. Logout\n1. Start EC2 instance\n2. Stop EC2 instance\n3. Tag an instance\n4. Add inbound rule in Security Group")
     print("5. Remove an inbound rule from Security Group\n6. Autoscaling Group suspend process")
-    main_menu_choice = int(input("Choose from above (0 to 5): "))
+    main_menu_choice = int(input("Choose from above (0 to 5) >> "))
     
     return main_menu_choice
 
 
 def submenu():
     print("\n0. Logout\n1. Repeat\n2. Main Menu")
-    subchoice = int(input("Choose from above (0 to 2): "))
+    subchoice = int(input("Choose from above (0 to 2) >> "))
 
     return subchoice
 
 
 def login():
     print("\n\n---Login---\n")
-    region = str(input("Enter instance region: ")).lower()
-    key = str(input("Enter AWS access key: "))
+    region = str(input("Enter instance region >> ")).lower()
+    key = str(input("Enter AWS access key >> "))
     try: 
-        secret = getpass.getpass(prompt='Enter AWS secret (Input text will NOT be visible): ')
+        secret = getpass.getpass(prompt='Enter AWS secret (Input text will NOT be visible) >> ')
     except Exception as error: 
         print('ERROR', error)
         exit(1)
@@ -81,8 +81,8 @@ def get_ec2(region,state,tagname,tagvalue,session):
 def startEC2(region,session):
     print("\n\n---Start EC2 Instance---\n")
     print("Active region:",region)
-    tagname = str(input("Enter tag name: "))
-    tagvalue = str(input("Enter tag value: "))
+    tagname = str(input("Enter tag name >> "))
+    tagvalue = str(input("Enter tag value >> "))
     reservations,ec2_obj = get_ec2(region,'stopped',tagname,tagvalue,session)
 
     # If list is empty
@@ -101,11 +101,13 @@ def startEC2(region,session):
             launch_time = instance["LaunchTime"]
             print(str(i)+"\t"+str(instance_id)+"\t"+tagvalue+"\t\t"+str(private_ip)+"\t\t"+str(launch_time))
 
-    print("\nChoose instances to start from above list (0 to "+str(i)+"). Separate them by commas.")
-    start_choice = input("Example: 1,3,4: ")
+    print("\nChoose instances to start from above list (0 to "+str(i)+"). Separate them by commas. Just type 0 to return to submenu.")
+    start_choice = input("Example: 1,3,4 >> ")
+    if start_choice == '0':
+        return [],0
     choice_list = start_choice.rstrip().split(",")
     print("Instances to start:", choice_list)
-    confirm = str(input("Do you confirm ? (Type 'confirm'): "))
+    confirm = str(input("Do you confirm ? (Type 'confirm') >> "))
     if confirm != 'confirm':
         print("You seem to be confused.")
         return [],0
@@ -133,8 +135,8 @@ def startEC2(region,session):
 def stopEC2(region,session):
     print("\n\n---Stop EC2 Instance---\n")
     print("Active region:",region)
-    tagname = str(input("Enter tag name: "))
-    tagvalue = str(input("Enter tag value: "))
+    tagname = str(input("Enter tag name >> "))
+    tagvalue = str(input("Enter tag value >> "))
     reservations,ec2_obj = get_ec2(region,'running',tagname,tagvalue,session)
 
     # If list is empty
@@ -153,11 +155,13 @@ def stopEC2(region,session):
             launch_time = instance["LaunchTime"]
             print(str(i) + "\t" + str(instance_id) + "\t" + tagvalue + "\t\t" + str(private_ip) + "\t\t" + str(launch_time))
 
-    print("\nChoose instances to stop from above list (0 to " + str(i) + "). Separate them by commas.")
-    start_choice = input("Example: 1,3,4: ")
-    choice_list = start_choice.rstrip().split(",")
+    print("\nChoose instances to stop from above list (0 to " + str(i) + "). Separate them by commas. Just type 0 to return to submenu.")
+    stop_choice = input("Example: 1,3,4 >> ")
+    if stop_choice == '0':
+        return  [],0
+    choice_list = stop_choice.rstrip().split(",")
     print("Instances to stop:", choice_list)
-    confirm = str(input("Do you confirm ? (Type 'confirm'): "))
+    confirm = str(input("Do you confirm ? (Type 'confirm') >> "))
     if confirm != 'confirm':
         print("You seem to be confused.")
         return [], 0
@@ -190,8 +194,8 @@ def add_rule_in_sg(region,session):
     print("\n\n---Add inbound rule in Security Group---\n")
     print("Active region:", region)
     print("Enter tag name and its value to filter the EC2 instances.")
-    tagname = str(input("Enter tag name: "))
-    tagvalue = str(input("Enter tag value: "))
+    tagname = str(input("Enter tag name >> "))
+    tagvalue = str(input("Enter tag value >> "))
     reservations, ec2_obj = get_ec2(region, 'all', tagname, tagvalue, session)
 
     # If list is empty
@@ -213,7 +217,7 @@ def add_rule_in_sg(region,session):
 
 
     print("\nChoose one instances from above list (0 to " + str(i) + "). 0 to return to submenu")
-    instance_choice = int(input("Example: 3: "))
+    instance_choice = int(input("Example: 3 >> "))
 
     if instance_choice == 0:
         return  ""
@@ -247,10 +251,10 @@ def add_rule_in_sg(region,session):
     if security_group_choice == 0:
         return ""
 
-    ip_protocol = str(input("Enter IP Protocol (tcp/udp/http/https/ssh): ")).lower()
-    to_port = int(input("Enter port number: "))
+    ip_protocol = str(input("Enter IP Protocol (tcp/udp) >> ")).lower()
+    to_port = int(input("Enter port number >> "))
     your_public_ip = str(requests.get('http://ipinfo.io/json').json()['ip']) + "/32"
-    ip_range = str(input("Enter CIDR IP (default: {}): ".format(your_public_ip)))
+    ip_range = str(input("Enter CIDR IP (default: {}) >> ".format(your_public_ip)))
 
     if ip_range == "":
         ip_range = your_public_ip
@@ -258,7 +262,7 @@ def add_rule_in_sg(region,session):
     ip_perm = [{'IpProtocol': ip_protocol, 'ToPort': to_port,  'FromPort': to_port, 'IpRanges': [{'CidrIp': ip_range}]}]
 
     print(ip_perm)
-    confirm = str(input("Do you confirm ? (Type 'confirm'): "))
+    confirm = str(input("Do you confirm ? (Type 'confirm') >> "))
     if confirm != 'confirm':
         print("You seem to be confused.")
         return ""
