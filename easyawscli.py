@@ -7,7 +7,7 @@ import getpass
 import requests
 # from SecureString import clearmem
 
-source_code_url = "https://github.com/navilg/cliaws"
+source_code_url = "https://github.com/navilg/easyawscli"
 
 def main_menu():
     print("\n\n---Main Menu---\n")
