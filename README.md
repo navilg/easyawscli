@@ -20,7 +20,7 @@ Know how to create AWS access key here: https://docs.aws.amazon.com/general/late
 
 ### Note:
 
-Pasting secret text in Windows powershell or Command prompt with Shift+insert or ctrl+v doesn't work.
+Pasting secret text in `Windows powershell` or `Command prompt` with `Shift+insert` or `ctrl+v` doesn't work.
 
 Enable paste action with ctrl+shift+v in powershell and command prompt for that with --> Right click on title bar of PS or cmd prompt --> properties --> Options --> Check mark 'use ctrl+shift+c/v as copy/paste'
 Bug link: https://bugs.python.org/issue37426
