@@ -5,13 +5,14 @@ import boto3
 from botocore.exceptions import ClientError
 import getpass
 import requests
-import datetime
 # from SecureString import clearmem
 
+source_code_url = "https://github.com/navilg/cliaws"
 
 def main_menu():
     print("\n\n---Main Menu---\n")
-    print("0. Exit/Logout\n1. Start EC2 instance\n2. Stop EC2 instance\n3. Tag an instance\n4. Add rule in Security Group\n5. Remove an IP from SG\n6. Autoscaling Group suspend process")
+    print("0. Logout\n1. Start EC2 instance\n2. Stop EC2 instance\n3. Tag an instance\n4. Add inbound rule in Security Group")
+    print("5. Remove an inbound rule from Security Group\n6. Autoscaling Group suspend process")
     main_menu_choice = int(input("Choose from above (0 to 5): "))
     
     return main_menu_choice
@@ -182,11 +183,11 @@ def stopEC2(region,session):
 
 
 def tagInstance():
-    print("tagInstance")
+    print("Tag Instance. Coming soon...")
 
 
-def add_rule_in_sg():
-    print("\n\n---Add rule in Security Group---\n")
+def add_rule_in_sg(region,session):
+    print("\n\n---Add inbound rule in Security Group---\n")
     print("Active region:", region)
     print("Enter tag name and its value to filter the EC2 instances.")
     tagname = str(input("Enter tag name: "))
@@ -196,7 +197,7 @@ def add_rule_in_sg():
     # If list is empty
     if not reservations:
         print("No instances found.")
-        return [], 0
+        return ""
 
     print("\nBelow instances found with tag '" + tagname + "':'" + tagvalue + "'")
     print("No.\tInstance_ID\t\t" + tagname + "\t\tVPC_ID\t\tPrivate_IP_Address\t\tLaunch_Time")
@@ -211,8 +212,11 @@ def add_rule_in_sg():
             print(str(i) + "\t" + str(instance_id) + "\t" + tagvalue + "\t\t" + str(vpc_id) + "\t\t" + str(private_ip) + "\t\t" + str(launch_time))
 
 
-    print("\nChoose one instances from above list (0 to " + str(i) + ")")
+    print("\nChoose one instances from above list (0 to " + str(i) + "). 0 to return to submenu")
     instance_choice = int(input("Example: 3: "))
+
+    if instance_choice == 0:
+        return  ""
 
     print("Below Security Groups are attached to chosen instance.")
     print("No.\tSecurity_Group_ID\t\tSecurity_Group_Name")
@@ -236,11 +240,15 @@ def add_rule_in_sg():
                         group_id_list.append(group_id)
                         print(str(j) + "\t" + str(group_id) + "\t\t" + group_name)
                 break
-    security_group_choice = int(input("Choose one security group from above: "))
-    print("0. Exit\n1. Inbound/Ingress\n2. Outbound/Egress")
-    rule_type_choice = int(input("Choose from above: "))
-    ip_protocol = str(input("Enter IP Protocol (tcp/udp): ")).lower()
-    to_port = int(input("Enter destination port: "))
+
+    print("Choose one security group from above (0 to", j," ). Type 0 to return to submenu.")
+    security_group_choice = int(input(">> "))
+
+    if security_group_choice == 0:
+        return ""
+
+    ip_protocol = str(input("Enter IP Protocol (tcp/udp/http/https/ssh): ")).lower()
+    to_port = int(input("Enter port number: "))
     your_public_ip = str(requests.get('http://ipinfo.io/json').json()['ip']) + "/32"
     ip_range = str(input("Enter CIDR IP (default: {}): ".format(your_public_ip)))
 
@@ -249,43 +257,29 @@ def add_rule_in_sg():
 
     ip_perm = [{'IpProtocol': ip_protocol, 'ToPort': to_port,  'FromPort': to_port, 'IpRanges': [{'CidrIp': ip_range}]}]
 
-    if rule_type_choice == 1:
-        ec2_obj.authorize_security_group_ingress(GroupId=group_id_list[security_group_choice - 1],IpPermissions=ip_perm)
-        print("Rule added to security group",group_id_name[security_group_choice - 1])
-
-    exit(0)
-
-    """
+    print(ip_perm)
     confirm = str(input("Do you confirm ? (Type 'confirm'): "))
     if confirm != 'confirm':
         print("You seem to be confused.")
-        return [], 0
+        return ""
 
-    print("Stopping Instances...")
-    instance_state_changed = 0
-    instances_stopped = []
+    print("Adding inbound rule", ip_perm, "to", group_id_list[security_group_choice - 1])
+    try:
+        ec2_obj.authorize_security_group_ingress(GroupId=group_id_list[security_group_choice - 1],IpPermissions=ip_perm)
+        print("Inbound rule added to security group", group_id_list[security_group_choice - 1])
+    except ClientError as e:
+        print(e.response['Error']['Message'])
+        return ""
 
-    i = 0
-    for reservation in reservations:
-        for instance in reservation["Instances"]:
-            i += 1
-            if str(i) in choice_list:
-                try:
-                    print("Stopping instance ", instance["InstanceId"])
-                    ec2_obj.stop_instances(InstanceIds=[instance["InstanceId"]])
-                    instances_stopped.append(instance["InstanceId"])
-                    instance_state_changed += 1
-                except ClientError as e:
-                    print(e.response['Error']['Message'])
+    return str(group_id_list[security_group_choice - 1])
 
-    return instances_stopped, instance_state_changed
-    """
-def removeIPfromEC2():
-    print("removeIPfromEC2")
+
+def remove_rule_from_sg():
+    print("Remove an inbound rule fro security group. Coming soon...")
 
 
 def suspendProcess():
-    print("suspendProcess")
+    print("Suspend Process from autoscaling group. Coming soon...")
 
 
 def clear():
@@ -300,14 +294,18 @@ def clear():
 
 
 if __name__ == "__main__":
-    print("Easy AWS CLI\n")
+    print("\t\t----------------")
+    print("\t\t| Easy AWS CLI |")
+    print("\t\t----------------")
+    print(source_code_url)
+    region,session = login()
+    print("Login successful")
+
     choice = main_menu()
     print(choice)
     if choice == 0:
         print("Exiting...")
         exit(0)
-    region,session = login()
-    print("Login successful")
 
     while True:
 
@@ -320,9 +318,11 @@ if __name__ == "__main__":
         elif choice == 3:
             tagInstance()
         elif choice == 4:
-            add_rule_in_sg()
+            sg_updated = add_rule_in_sg(region,session)
+            if sg_updated != "":
+                print("Security Group", sg_updated, "updated.")
         elif choice == 5:
-            removeIPfromEC2()
+            remove_rule_from_sg()
         elif choice == 6:
             suspendProcess()
         elif choice == 0:
@@ -330,7 +330,7 @@ if __name__ == "__main__":
         else:
             print("Wrong choice")
             exit(1)
-        
+
         subchoice = submenu()
         if subchoice == 0:
             exit(0)
@@ -341,5 +341,4 @@ if __name__ == "__main__":
         else:
             print("Wrong choice")
             exit(1)
-
 
