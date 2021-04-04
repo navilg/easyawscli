@@ -4,7 +4,7 @@ This python script will help manage/control AWS services from your terminal easi
 
 ```pip install -r requirements.txt```
 
-```python3 cliaws.py```
+```python3 easyawscli.py```
 
 And script will lead your way. 
 
