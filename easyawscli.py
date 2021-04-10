@@ -18,8 +18,8 @@ def main_menu():
     return main_menu_choice
 
 
-def submenu():
-    print("\n0. Logout\n1. Repeat\n2. Main Menu")
+def submenu(action_name=""):
+    print("\n0. Logout\n1. Repeat '" + str(action_name) + "'\n2. Main Menu")
     subchoice = int(input("Choose from above (0 to 2) >> "))
 
     return subchoice
@@ -481,22 +481,28 @@ if __name__ == "__main__":
     while True:
 
         if choice == 1:
-            instances_started,number_of_instance_started = startEC2(region,session)
+            action_name = 'Start EC2 instance'
+            instances_started, number_of_instance_started = startEC2(region, session)
             print(number_of_instance_started, "Instances started", instances_started)
         elif choice == 2:
-            instances_stopped,number_of_instance_stopped = stopEC2(region,session)
+            action_name = 'Stop EC2 instance'
+            instances_stopped, number_of_instance_stopped = stopEC2(region, session)
             print(number_of_instance_stopped, "Instances stopped", instances_stopped)
         elif choice == 3:
+            action_name = 'Tag an instance'
             tagInstance()
         elif choice == 4:
-            sg_updated = add_inbound_rule_in_sg(region,session)
+            action_name = 'Add inbound rule to a security group'
+            sg_updated = add_inbound_rule_in_sg(region, session)
             if sg_updated != "":
                 print("Security Group", sg_updated, "updated.")
         elif choice == 5:
-            sg_updated = remove_inbound_rule_from_sg(region,session)
+            action_name = 'Remove inbound rule from a security group'
+            sg_updated = remove_inbound_rule_from_sg(region, session)
             if sg_updated != "":
                 print("Security Group", sg_updated, "updated.")
         elif choice == 6:
+            action_name = 'Suspend autoscaling process'
             suspendProcess()
         elif choice == 0:
             exit(0)
@@ -504,7 +510,7 @@ if __name__ == "__main__":
             print("Wrong choice")
             exit(1)
 
-        subchoice = submenu()
+        subchoice = submenu(action_name)
         if subchoice == 0:
             exit(0)
         elif subchoice == 1:
@@ -514,4 +520,5 @@ if __name__ == "__main__":
         else:
             print("Wrong choice")
             exit(1)
+
 
