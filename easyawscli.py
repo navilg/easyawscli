@@ -66,16 +66,22 @@ def login():
 
 def set_region():
     print("Choose one region from list below.")
-    print("1.  us-east-1 (N. Virginia)\t\t2.  us-east-2 (Ohio)\t\t3.  us-west-1 (N. California)\t\t4.  us-west-2 ("
-          "Oregaon)")
-    print("5.  af-south-1 (Cape Town)\t\t6.  ap-east-1 (Hong Kong)\t7.  ap-south-1 (Mumbai)\t\t\t8.  ap-northeast-3 ("
-          "Osaka)")
-    print("9.  ap-northeast-2 (Seoul)\t\t10. ap-southeast-1 (Singapore)\t11. ap-southeast-2 (Sydney)\t\t12. "
-          "ap-northeast-1 (Tokyo)")
-    print("13. ca-central-1 (Canada/Central)\t14. eu-central-1 (Frankfurt)\t15. eu-west-1 (Ireland)\t\t\t16. "
-          "eu-west-2 (London)")
-    print("17. eu-south-1 (Milan)\t\t\t18. eu-west-3 (Paris)\t\t19. eu-north-1 (Stockholm)\t\t20. me-south-1 (Bahrain)")
-    print("21. sa-east-1 (Sao Paulo)\n")
+    print("------------------------------------------------------------------------------------------------------------"
+          "-------------------------------------")
+    print("|  1.  us-east-1 (N. Virginia)\t\t2.  us-east-2 (Ohio)\t\t3.  us-west-1 (N. California)\t\t4.  us-west-2 ("
+          "Oregon)\t\t|")
+    print("|  5.  af-south-1 (Cape Town)\t\t6.  ap-east-1 (Hong Kong)\t7.  ap-south-1 (Mumbai)\t\t\t8.  "
+          "ap-northeast-3 ( "
+          "Osaka)\t|")
+    print("|  9.  ap-northeast-2 (Seoul)\t\t10. ap-southeast-1 (Singapore)\t11. ap-southeast-2 (Sydney)\t\t12. "
+          "ap-northeast-1 (Tokyo)\t|")
+    print("|  13. ca-central-1 (Canada/Central)\t14. eu-central-1 (Frankfurt)\t15. eu-west-1 (Ireland)\t\t\t16. "
+          "eu-west-2 (London)\t\t|")
+    print("|  17. eu-south-1 (Milan)\t\t18. eu-west-3 (Paris)\t\t19. eu-north-1 (Stockholm)\t\t20. me-south-1 ("
+          "Bahrain)\t|")
+    print("|  21. sa-east-1 (Sao Paulo)\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t|")
+    print("------------------------------------------------------------------------------------------------------------"
+          "-------------------------------------\n")
 
     while True:
         try:
