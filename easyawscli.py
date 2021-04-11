@@ -19,6 +19,7 @@ def main_menu():
 
 
 def submenu(action_name=""):
+    print("\n\n---Sub Menu---\n")
     print("\n0. Logout\n1. Repeat '" + str(action_name) + "'\n2. Main Menu")
     subchoice = int(input("Choose from above (0 to 2) >> "))
 
