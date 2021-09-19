@@ -13,7 +13,7 @@ source_code_url = "https://github.com/navilg/easyawscli"
 
 def mainMenu():
     print("\n\n---Main Menu---\n")
-    print("0. Logout\n1. Start EC2 instance\n2. Stop EC2 instance\n3. Tag an instance\n4. Add inbound rule in Security Group")
+    print("0. Logout\n1. Start EC2 instance\n2. Stop EC2 instance\n3. Tag (Update tag of) an instance\n4. Add inbound rule in Security Group")
     print("5. Remove an inbound rule from Security Group\n6. Autoscaling Group suspend process")
     main_menu_choice = int(input("Choose from above (0 to 6) >> "))
     
