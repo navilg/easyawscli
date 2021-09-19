@@ -58,14 +58,15 @@ if __name__ == "__main__":
         if choice == 1:
             action_name = 'Start EC2 instance'
             instances_started, number_of_instance_started = ec2.startEC2(region, session)
-            print(number_of_instance_started, "Instances started", instances_started)
+            print(number_of_instance_started, "Instance/s started", instances_started)
         elif choice == 2:
             action_name = 'Stop EC2 instance'
             instances_stopped, number_of_instance_stopped = ec2.stopEC2(region, session)
-            print(number_of_instance_stopped, "Instances stopped", instances_stopped)
+            print(number_of_instance_stopped, "Instance/s stopped", instances_stopped)
         elif choice == 3:
             action_name = 'Tag an instance'
-            ec2.addTag()
+            instances_tagged, number_of_instances_tagged = ec2.addTag(region, session)
+            print(number_of_instances_tagged, "instance/s has been tagged.", instances_tagged)
         elif choice == 4:
             action_name = 'Add inbound rule to a security group'
             sg_updated = ec2.addInboundRuleInSg(region, session)

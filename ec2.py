@@ -6,22 +6,22 @@ from sys import exit
 def getEc2(region,state,tagname,tagvalue,session):
     print("Searching instances with tag","'"+tagname+":", tagvalue+"'","in region", region)
     reservations = []
-    ec2_obj = session.client('ec2',region_name=region)
+    ec2_client = session.client('ec2',region_name=region)
     if state == "all":
         filters = [{'Name': 'tag:' + tagname, 'Values': [tagvalue]}]
     else:
         filters = [{'Name': 'instance-state-name','Values': [state]},{'Name': 'tag:'+tagname,'Values': [tagvalue]}]
 
-    reservations = ec2_obj.describe_instances(Filters=filters).get("Reservations")
+    reservations = ec2_client.describe_instances(Filters=filters).get("Reservations")
 
-    return reservations,ec2_obj
+    return reservations,ec2_client
 
 def startEC2(region,session):
     print("\n\n---Start EC2 Instance---\n")
     print("Active region:",region)
     tagname = str(input("Enter tag name >> "))
     tagvalue = str(input("Enter tag value >> "))
-    reservations,ec2_obj = getEc2(region,'stopped',tagname,tagvalue,session)
+    reservations,ec2_client = getEc2(region,'stopped',tagname,tagvalue,session)
 
     # If list is empty
     if not reservations:
@@ -61,7 +61,7 @@ def startEC2(region,session):
             if str(i) in choice_list:
                 try:
                     print("Starting instance ", instance["InstanceId"])
-                    ec2_obj.start_instances(InstanceIds=[instance["InstanceId"]])
+                    ec2_client.start_instances(InstanceIds=[instance["InstanceId"]])
                     instances_started.append(instance["InstanceId"])
                     instance_state_changed += 1
                 except ClientError as e:
@@ -75,7 +75,7 @@ def stopEC2(region,session):
     print("Active region:",region)
     tagname = str(input("Enter tag name >> "))
     tagvalue = str(input("Enter tag value >> "))
-    reservations,ec2_obj = getEc2(region,'running',tagname,tagvalue,session)
+    reservations,ec2_client = getEc2(region,'running',tagname,tagvalue,session)
 
     # If list is empty
     if not reservations:
@@ -115,7 +115,7 @@ def stopEC2(region,session):
             if str(i) in choice_list:
                 try:
                     print("Stopping instance ", instance["InstanceId"])
-                    ec2_obj.stop_instances(InstanceIds=[instance["InstanceId"]])
+                    ec2_client.stop_instances(InstanceIds=[instance["InstanceId"]])
                     instances_stopped.append(instance["InstanceId"])
                     instance_state_changed += 1
                 except ClientError as e:
@@ -129,7 +129,7 @@ def addInboundRuleInSg(region,session):
     print("Enter tag name and its value to filter the EC2 instances.")
     tagname = str(input("Enter tag name >> "))
     tagvalue = str(input("Enter tag value >> "))
-    reservations, ec2_obj = getEc2(region, 'all', tagname, tagvalue, session)
+    reservations, ec2_client = getEc2(region, 'all', tagname, tagvalue, session)
 
     # If list is empty
     if not reservations:
@@ -182,7 +182,7 @@ def addInboundRuleInSg(region,session):
     if security_group_choice == 0:
         return ""
 
-    security_group_details = ec2_obj.describe_security_groups(GroupIds=[security_group_id_list[security_group_choice - 1]])
+    security_group_details = ec2_client.describe_security_groups(GroupIds=[security_group_id_list[security_group_choice - 1]])
 
     print("Below inbound rules are currently authorized to security group", security_group_id_list[security_group_choice - 1])
     print("No.\tPorts\t\tIP_Protocol\tSource\t\t\t\tDescription")
@@ -225,7 +225,7 @@ def addInboundRuleInSg(region,session):
 
     print("Adding inbound rule", ip_perm, "to", security_group_id_list[security_group_choice - 1])
     try:
-        ec2_obj.authorize_security_group_ingress(GroupId=security_group_id_list[security_group_choice - 1],IpPermissions=ip_perm)
+        ec2_client.authorize_security_group_ingress(GroupId=security_group_id_list[security_group_choice - 1],IpPermissions=ip_perm)
         print("Inbound rule added to security group", security_group_id_list[security_group_choice - 1])
     except ClientError as e:
         print(e.response['Error']['Message'])
@@ -240,7 +240,7 @@ def removeInboundRuleFromSg(region,session):
     print("Enter tag name and its value to filter the EC2 instances.")
     tagname = str(input("Enter tag name >> "))
     tagvalue = str(input("Enter tag value >> "))
-    reservations, ec2_obj = getEc2(region, 'all', tagname, tagvalue, session)
+    reservations, ec2_client = getEc2(region, 'all', tagname, tagvalue, session)
 
     # If list is empty
     if not reservations:
@@ -293,7 +293,7 @@ def removeInboundRuleFromSg(region,session):
     if security_group_choice == 0:
         return ""
 
-    security_group_details = ec2_obj.describe_security_groups(GroupIds=[security_group_id_list[security_group_choice - 1]])
+    security_group_details = ec2_client.describe_security_groups(GroupIds=[security_group_id_list[security_group_choice - 1]])
 
     print("Below inbound rules are authorized to security group",security_group_id_list[security_group_choice - 1])
     print("No.\tPorts\t\tIP_Protocol\tSource\t\t\t\tDescription")
@@ -373,7 +373,7 @@ def removeInboundRuleFromSg(region,session):
 
     print("Removing inbound rule", ip_perm, "from", security_group_id_list[security_group_choice - 1])
     try:
-        ec2_obj.revoke_security_group_ingress(GroupId=security_group_id_list[security_group_choice - 1],IpPermissions=ip_perm)
+        ec2_client.revoke_security_group_ingress(GroupId=security_group_id_list[security_group_choice - 1],IpPermissions=ip_perm)
         print("Inbound rule removed from security group", security_group_id_list[security_group_choice - 1])
     except ClientError as e:
         print(e.response['Error']['Message'])
@@ -381,5 +381,64 @@ def removeInboundRuleFromSg(region,session):
 
     return str(security_group_id_list[security_group_choice - 1])
 
-def addTag():
-    pass
+def addTag(region,session):
+    print("\n\n---Add Tag to Instance---\n")
+    print("Active region:",region)
+    tagname = str(input("Enter tag name to filter instances >> "))
+    tagvalue = str(input("Enter tag value >> "))
+    reservations,ec2_client = getEc2(region,'all',tagname,tagvalue,session)
+
+    # If list is empty
+    if not reservations:
+        print("No instances found.")
+        return [],0
+
+    print("\nBelow instances found with tag '" + tagname + "':'" + tagvalue + "'")
+    print("No.\tInstance_ID\t\t" + tagname + "\t\tPrivate_IP_Address\t\tLaunch_Time")
+    i = 0
+    for reservation in reservations:
+        for instance in reservation["Instances"]:
+            i += 1
+            instance_id = instance["InstanceId"]
+            private_ip = instance["PrivateIpAddress"]
+            launch_time = instance["LaunchTime"]
+            print(str(i) + "\t" + str(instance_id) + "\t" + tagvalue + "\t\t" + str(private_ip) + "\t\t" + str(launch_time))
+
+    print("\nChoose one instance from above list (0 to " + str(i) + "). Just type 0 to return to submenu.")
+    instance_choice = input("Example: 1,3 >> ")
+    if instance_choice == '0':
+        return  [],0
+    choice_list = instance_choice.rstrip().split(",")
+
+    print("Instance to be tagged:", choice_list)
+    tags_list = []
+    while True:
+        new_tag_name = str(input("Add a tag name >> "))
+        new_tag_value = str(input("Add tag value for tag name '{}' >> ".format(new_tag_name)))
+        tags_list.append({"Key": new_tag_name, "Value": new_tag_value})
+        add_more = str(input("Do you want to add more tags (y/N) >> "))
+        if add_more != "y" and add_more != "Y":
+            break
+
+    print("Below tags will be added: \n", tags_list)    
+    confirm = str(input("Do you confirm ? (Type 'confirm') >> "))
+    if confirm != 'confirm':
+        print("You seem to be confused.")
+        return [], 0
+
+    instances_tagged = []
+    number_of_instances_tagged = 0
+    i = 0
+    for reservation in reservations:
+        for instance in reservation["Instances"]:
+            i += 1
+            if str(i) in choice_list:
+                try:
+                    print("Tagging instance ", instance["InstanceId"])
+                    ec2_client.create_tags(Resources=[instance["InstanceId"]], Tags=tags_list)
+                    instances_tagged.append(instance["InstanceId"])
+                    number_of_instances_tagged += 1
+                except ClientError as e:
+                    print(e.response['Error']['Message'])
+
+    return instances_tagged,number_of_instances_tagged
