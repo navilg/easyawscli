@@ -515,5 +515,3 @@ def terminateEc2(region,session):
                         print("There are one or more instance in same AZ with instance termination protected.")
 
     return instances_terminated,number_of_instances_terminated,instances_failed_to_terminate,number_of_ins_failed_to_terminate
-
-                    

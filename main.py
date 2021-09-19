@@ -9,9 +9,17 @@ import asg
 
 source_code_url = "https://github.com/navilg/easyawscli"
 
-def mainMenu():
-    print("\n\n---Main Menu---\n")
-    print("0. Logout\n1. Start EC2 instance\n2. Stop EC2 instance\n3. Tag (Update tag of) an instance\n4. Add inbound rule in Security Group")
+def services():
+    print("\n\n---Services---\n")
+    print("0. Logout\t\t1. EC2\t\t2. Autoscaling Group")
+    service_choice = int(input("Choose from above (0 to 6) >> "))
+    
+    return service_choice
+
+
+def ec2Menu():
+    print("\n\n---EC2 Menu---\n")
+    print("0. Back to Services\n1. Start EC2 instance\n2. Stop EC2 instance\n3. Tag (Update tag of) an instance\n4. Add inbound rule in Security Group")
     print("5. Remove an inbound rule from Security Group\n6. Autoscaling Group suspend process\n7. Terminate an Instance")
     main_menu_choice = int(input("Choose from above (0 to 6) >> "))
     
@@ -45,68 +53,77 @@ if __name__ == "__main__":
     region,session = login.login()
     print("Login successful")
 
-    choice = mainMenu()
-    print(choice)
-    if choice == 0:
-        print("Exiting...")
-        exit(0)
+    service_choice = services()
 
     while True:
 
-        if choice == 1:
-            action_name = 'Start EC2 instance'
-            instances_started, number_of_instance_started,instance_failed_to_start, number_of_ins_failed_to_start = ec2.startEC2(region, session)
-            print(number_of_instance_started, "Instance/s started", instances_started)
-            print("Failed to start", number_of_ins_failed_to_start, "instance/s.", instance_failed_to_start)
+        if service_choice == 1:
 
-        elif choice == 2:
-            action_name = 'Stop EC2 instance'
-            instances_stopped, number_of_instance_stopped, instance_failed_to_stop, number_of_ins_failed_to_stop = ec2.stopEC2(region, session)
-            print(number_of_instance_stopped, "Instance/s stopped", instances_stopped)
-            print("Failed to stop", number_of_ins_failed_to_stop, "instance/s.", instance_failed_to_stop)
+            choice = ec2Menu()
+            print(choice)
 
-        elif choice == 3:
-            action_name = 'Tag an instance'
-            instances_tagged, number_of_instances_tagged, instance_failed_to_tag, number_of_ins_failed_to_tag = ec2.addTag(region, session)
-            print(number_of_instances_tagged, "instance/s has been tagged.", instances_tagged)
-            print("Failed to tag", number_of_ins_failed_to_tag, "instance/s.", instance_failed_to_tag)
+            while True:
 
-        elif choice == 4:
-            action_name = 'Add inbound rule to a security group'
-            sg_updated = ec2.addInboundRuleInSg(region, session)
-            if sg_updated != "":
-                print("Security Group", sg_updated, "updated.")
+                if choice == 1:
+                    action_name = 'Start EC2 instance'
+                    instances_started, number_of_instance_started,instance_failed_to_start, number_of_ins_failed_to_start = ec2.startEC2(region, session)
+                    print(number_of_instance_started, "Instance/s started", instances_started)
+                    print("Failed to start", number_of_ins_failed_to_start, "instance/s.", instance_failed_to_start)
 
-        elif choice == 5:
-            action_name = 'Remove inbound rule from a security group'
-            sg_updated = ec2.removeInboundRuleFromSg(region, session)
-            if sg_updated != "":
-                print("Security Group", sg_updated, "updated.")
+                elif choice == 2:
+                    action_name = 'Stop EC2 instance'
+                    instances_stopped, number_of_instance_stopped, instance_failed_to_stop, number_of_ins_failed_to_stop = ec2.stopEC2(region, session)
+                    print(number_of_instance_stopped, "Instance/s stopped", instances_stopped)
+                    print("Failed to stop", number_of_ins_failed_to_stop, "instance/s.", instance_failed_to_stop)
 
-        elif choice == 6:
-            action_name = 'Suspend autoscaling process'
-            asg.suspendProcess()
+                elif choice == 3:
+                    action_name = 'Tag an instance'
+                    instances_tagged, number_of_instances_tagged, instance_failed_to_tag, number_of_ins_failed_to_tag = ec2.addTag(region, session)
+                    print(number_of_instances_tagged, "instance/s has been tagged.", instances_tagged)
+                    print("Failed to tag", number_of_ins_failed_to_tag, "instance/s.", instance_failed_to_tag)
 
-        elif choice == 7:
-            action_name = 'Terminate an instance'
-            instances_terminated, number_of_instances_terminated, instance_failed_to_terminate, number_of_ins_failed_to_terminate = ec2.terminateEc2(region, session)
-            print(number_of_instances_terminated, "instance/s has been terminated.", instances_terminated)
-            print("Failed to terminate", number_of_ins_failed_to_terminate, "instance/s.", instance_failed_to_terminate)
+                elif choice == 4:
+                    action_name = 'Add inbound rule to a security group'
+                    sg_updated = ec2.addInboundRuleInSg(region, session)
+                    if sg_updated != "":
+                        print("Security Group", sg_updated, "updated.")
 
-        elif choice == 0:
+                elif choice == 5:
+                    action_name = 'Remove inbound rule from a security group'
+                    sg_updated = ec2.removeInboundRuleFromSg(region, session)
+                    if sg_updated != "":
+                        print("Security Group", sg_updated, "updated.")
+
+                elif choice == 6:
+                    action_name = 'Suspend autoscaling process'
+                    asg.suspendProcess()
+
+                elif choice == 7:
+                    action_name = 'Terminate an instance'
+                    instances_terminated, number_of_instances_terminated, instance_failed_to_terminate, number_of_ins_failed_to_terminate = ec2.terminateEc2(region, session)
+                    print(number_of_instances_terminated, "instance/s has been terminated.", instances_terminated)
+                    print("Failed to terminate", number_of_ins_failed_to_terminate, "instance/s.", instance_failed_to_terminate)
+
+                elif choice == 0:
+                    service_choice = services()
+                    break
+                else:
+                    print("Wrong choice")
+                    exit(1)
+
+                subchoice = subMenu(action_name)
+                if subchoice == 0:
+                    exit(0)
+                elif subchoice == 1:
+                    continue
+                elif subchoice == 2:
+                    choice = ec2Menu()
+                else:
+                    print("Wrong choice")
+                    exit(1)
+        elif service_choice == 0:
+            print("Exiting...")
             exit(0)
-
-        else:
-            print("Wrong choice")
-            exit(1)
-
-        subchoice = subMenu(action_name)
-        if subchoice == 0:
-            exit(0)
-        elif subchoice == 1:
-            continue
-        elif subchoice == 2:
-            choice = mainMenu()
         else:
             print("Wrong choice")
             exit(1)
