@@ -14,30 +14,35 @@ def getEc2(region,state,tagname,tagvalue,session):
 
     reservations = ec2_client.describe_instances(Filters=filters).get("Reservations")
 
-    return reservations,ec2_client
+    instances = []
+
+    for reservation in reservations:
+        for instance in reservation['Instances']:
+            instances.append(instance)
+
+    return instances,ec2_client
 
 def startEC2(region,session):
     print("\n\n---Start EC2 Instance---\n")
     print("Active region:",region)
     tagname = str(input("Enter tag name >> "))
     tagvalue = str(input("Enter tag value >> "))
-    reservations,ec2_client = getEc2(region,'stopped',tagname,tagvalue,session)
+    instances,ec2_client = getEc2(region,'stopped',tagname,tagvalue,session)
 
     # If list is empty
-    if not reservations:
+    if not instances:
         print("No stopped instances to start.")
         return [],0,[],0
 
     print("\nBelow instances found with tag '" + tagname + "':'" + tagvalue + "'")
     print("No.\tInstance_ID\t\t" + tagname + "\t\tPrivate_IP_Address\t\tLaunch_Time")
     i = 0
-    for reservation in reservations:
-        for instance in reservation["Instances"]:
-            i += 1
-            instance_id = instance["InstanceId"]
-            private_ip = instance["PrivateIpAddress"]
-            launch_time = instance["LaunchTime"]
-            print(str(i)+"\t"+str(instance_id)+"\t"+tagvalue+"\t\t"+str(private_ip)+"\t\t"+str(launch_time))
+    for instance in instances:
+        i += 1
+        instance_id = instance["InstanceId"]
+        private_ip = instance["PrivateIpAddress"]
+        launch_time = instance["LaunchTime"]
+        print(str(i)+"\t"+str(instance_id)+"\t"+tagvalue+"\t\t"+str(private_ip)+"\t\t"+str(launch_time))
 
     print("\nChoose instances to start from above list (0 to "+str(i)+"). Separate them by commas. Just type 0 to return to submenu.")
     start_choice = input("Example: 1,3,4 >> ")
@@ -57,19 +62,18 @@ def startEC2(region,session):
     number_of_ins_failed_to_start = 0
 
     i = 0
-    for reservation in reservations:
-        for instance in reservation["Instances"]:
-            i += 1
-            if str(i) in choice_list:
-                try:
-                    print("Starting instance ", instance["InstanceId"])
-                    ec2_client.start_instances(InstanceIds=[instance["InstanceId"]])
-                    instances_started.append(instance["InstanceId"])
-                    instance_state_changed += 1
-                except ClientError as e:
-                    print("ERROR:", e.response['Error']['Code'], ":", e.response['Error']['Message'])
-                    instances_failed_to_start.append(instance['InstanceId'])
-                    number_of_ins_failed_to_start += 1
+    for instance in instances:
+        i += 1
+        if str(i) in choice_list:
+            try:
+                print("Starting instance ", instance["InstanceId"])
+                ec2_client.start_instances(InstanceIds=[instance["InstanceId"]])
+                instances_started.append(instance["InstanceId"])
+                instance_state_changed += 1
+            except ClientError as e:
+                print("ERROR:", e.response['Error']['Code'], ":", e.response['Error']['Message'])
+                instances_failed_to_start.append(instance['InstanceId'])
+                number_of_ins_failed_to_start += 1
 
 
     return instances_started,instance_state_changed,instances_failed_to_start,number_of_ins_failed_to_start
@@ -80,23 +84,22 @@ def stopEC2(region,session):
     print("Active region:",region)
     tagname = str(input("Enter tag name >> "))
     tagvalue = str(input("Enter tag value >> "))
-    reservations,ec2_client = getEc2(region,'running',tagname,tagvalue,session)
+    instances,ec2_client = getEc2(region,'running',tagname,tagvalue,session)
 
     # If list is empty
-    if not reservations:
+    if not instances:
         print("No running instances to stop.")
         return [],0,[],0
 
     print("\nBelow instances found with tag '" + tagname + "':'" + tagvalue + "'")
     print("No.\tInstance_ID\t\t" + tagname + "\t\tPrivate_IP_Address\t\tLaunch_Time")
     i = 0
-    for reservation in reservations:
-        for instance in reservation["Instances"]:
-            i += 1
-            instance_id = instance["InstanceId"]
-            private_ip = instance["PrivateIpAddress"]
-            launch_time = instance["LaunchTime"]
-            print(str(i) + "\t" + str(instance_id) + "\t" + tagvalue + "\t\t" + str(private_ip) + "\t\t" + str(launch_time))
+    for instance in instances:
+        i += 1
+        instance_id = instance["InstanceId"]
+        private_ip = instance["PrivateIpAddress"]
+        launch_time = instance["LaunchTime"]
+        print(str(i) + "\t" + str(instance_id) + "\t" + tagvalue + "\t\t" + str(private_ip) + "\t\t" + str(launch_time))
 
     print("\nChoose instances to stop from above list (0 to " + str(i) + "). Separate them by commas. Just type 0 to return to submenu.")
     stop_choice = input("Example: 1,3,4 >> ")
@@ -107,7 +110,7 @@ def stopEC2(region,session):
     confirm = str(input("Do you confirm ? (Type 'confirm') >> "))
     if confirm != 'confirm':
         print("You seem to be confused.")
-        return [], 0
+        return [], 0, [], 0
 
     print("Stopping Instances...")
     instance_state_changed = 0
@@ -116,19 +119,18 @@ def stopEC2(region,session):
     number_of_ins_failed_to_stop = 0
 
     i = 0
-    for reservation in reservations:
-        for instance in reservation["Instances"]:
-            i += 1
-            if str(i) in choice_list:
-                try:
-                    print("Stopping instance ", instance["InstanceId"])
-                    ec2_client.stop_instances(InstanceIds=[instance["InstanceId"]])
-                    instances_stopped.append(instance["InstanceId"])
-                    instance_state_changed += 1
-                except ClientError as e:
-                    print("ERROR:", e.response['Error']['Code'], ":", e.response['Error']['Message'])
-                    instances_failed_to_stop.append(instance['InstanceId'])
-                    number_of_ins_failed_to_stop += 1
+    for instance in instances:
+        i += 1
+        if str(i) in choice_list:
+            try:
+                print("Stopping instance ", instance["InstanceId"])
+                ec2_client.stop_instances(InstanceIds=[instance["InstanceId"]])
+                instances_stopped.append(instance["InstanceId"])
+                instance_state_changed += 1
+            except ClientError as e:
+                print("ERROR:", e.response['Error']['Code'], ":", e.response['Error']['Message'])
+                instances_failed_to_stop.append(instance['InstanceId'])
+                number_of_ins_failed_to_stop += 1
 
     return instances_stopped,instance_state_changed,instances_failed_to_stop,number_of_ins_failed_to_stop
 
@@ -138,24 +140,23 @@ def addInboundRuleInSg(region,session):
     print("Enter tag name and its value to filter the EC2 instances.")
     tagname = str(input("Enter tag name >> "))
     tagvalue = str(input("Enter tag value >> "))
-    reservations, ec2_client = getEc2(region, 'all', tagname, tagvalue, session)
+    instances, ec2_client = getEc2(region, 'all', tagname, tagvalue, session)
 
     # If list is empty
-    if not reservations:
+    if not instances:
         print("No instances found.")
         return ""
 
     print("\nBelow instances found with tag '" + tagname + "':'" + tagvalue + "'")
     print("No.\tInstance_ID\t\t" + tagname + "\t\tVPC_ID\t\tPrivate_IP_Address\t\tLaunch_Time")
     i = 0
-    for reservation in reservations:
-        for instance in reservation["Instances"]:
-            i += 1
-            instance_id = instance["InstanceId"]
-            private_ip = instance["PrivateIpAddress"]
-            launch_time = instance["LaunchTime"]
-            vpc_id = instance["VpcId"]
-            print(str(i) + "\t" + str(instance_id) + "\t" + tagvalue + "\t\t" + str(vpc_id) + "\t\t" + str(private_ip) + "\t\t" + str(launch_time))
+    for instance in instances:
+        i += 1
+        instance_id = instance["InstanceId"]
+        private_ip = instance["PrivateIpAddress"]
+        launch_time = instance["LaunchTime"]
+        vpc_id = instance["VpcId"]
+        print(str(i) + "\t" + str(instance_id) + "\t" + tagvalue + "\t\t" + str(vpc_id) + "\t\t" + str(private_ip) + "\t\t" + str(launch_time))
 
 
     print("\nChoose one instances from above list (0 to " + str(i) + "). 0 to return to submenu")
@@ -170,20 +171,20 @@ def addInboundRuleInSg(region,session):
     i = 0
     security_group_id_list = []
     security_group_name_list = []
-    for reservation in reservations:
-        for instance in reservation["Instances"]:
-            i += 1
-            if i == instance_choice:
-                security_groups = instance["SecurityGroups"]
-                j = 0
-                for security_group in security_groups:
-                    j += 1
-                    security_group_name = security_group["GroupName"]
-                    security_group_id = security_group["GroupId"]
-                    security_group_name_list.append(security_group_name)
-                    security_group_id_list.append(security_group_id)
-                    print(str(j) + "\t" + str(security_group_id) + "\t\t" + security_group_name)
-                break
+
+    for instance in instances:
+        i += 1
+        if i == instance_choice:
+            security_groups = instance["SecurityGroups"]
+            j = 0
+            for security_group in security_groups:
+                j += 1
+                security_group_name = security_group["GroupName"]
+                security_group_id = security_group["GroupId"]
+                security_group_name_list.append(security_group_name)
+                security_group_id_list.append(security_group_id)
+                print(str(j) + "\t" + str(security_group_id) + "\t\t" + security_group_name)
+            break
 
     print("\nChoose one security group from above (0 to", j,"). Type 0 to return to submenu.")
     security_group_choice = int(input(">> "))
@@ -249,25 +250,24 @@ def removeInboundRuleFromSg(region,session):
     print("Enter tag name and its value to filter the EC2 instances.")
     tagname = str(input("Enter tag name >> "))
     tagvalue = str(input("Enter tag value >> "))
-    reservations, ec2_client = getEc2(region, 'all', tagname, tagvalue, session)
+    instances, ec2_client = getEc2(region, 'all', tagname, tagvalue, session)
 
     # If list is empty
-    if not reservations:
+    if not instances:
         print("No instances found.")
         return ""
 
     print("\nBelow instances found with tag '" + tagname + "':'" + tagvalue + "'")
     print("No.\tInstance_ID\t\t" + tagname + "\t\tVPC_ID\t\tPrivate_IP_Address\t\tLaunch_Time")
     i = 0
-    for reservation in reservations:
-        for instance in reservation["Instances"]:
-            i += 1
-            instance_id = instance["InstanceId"]
-            private_ip = instance["PrivateIpAddress"]
-            launch_time = instance["LaunchTime"]
-            vpc_id = instance["VpcId"]
-            print(str(i) + "\t" + str(instance_id) + "\t" + tagvalue + "\t\t" + str(vpc_id) + "\t\t" + str(
-                private_ip) + "\t\t" + str(launch_time))
+    for instance in instances:
+        i += 1
+        instance_id = instance["InstanceId"]
+        private_ip = instance["PrivateIpAddress"]
+        launch_time = instance["LaunchTime"]
+        vpc_id = instance["VpcId"]
+        print(str(i) + "\t" + str(instance_id) + "\t" + tagvalue + "\t\t" + str(vpc_id) + "\t\t" + str(
+            private_ip) + "\t\t" + str(launch_time))
 
     print("\nChoose one instances from above list (0 to " + str(i) + "). 0 to return to submenu")
     instance_choice = int(input("Example: 3 >> "))
@@ -281,20 +281,20 @@ def removeInboundRuleFromSg(region,session):
     i = 0
     security_group_id_list = []
     security_group_name_list = []
-    for reservation in reservations:
-        for instance in reservation["Instances"]:
-            i += 1
-            if i == instance_choice:
-                security_groups = instance["SecurityGroups"]
-                j = 0
-                for security_group in security_groups:
-                    j += 1
-                    security_group_name = security_group["GroupName"]
-                    security_group_id = security_group["GroupId"]
-                    security_group_name_list.append(security_group_name)
-                    security_group_id_list.append(security_group_id)
-                    print(str(j) + "\t" + str(security_group_id) + "\t\t" + security_group_name)
-                break
+
+    for instance in instances:
+        i += 1
+        if i == instance_choice:
+            security_groups = instance["SecurityGroups"]
+            j = 0
+            for security_group in security_groups:
+                j += 1
+                security_group_name = security_group["GroupName"]
+                security_group_id = security_group["GroupId"]
+                security_group_name_list.append(security_group_name)
+                security_group_id_list.append(security_group_id)
+                print(str(j) + "\t" + str(security_group_id) + "\t\t" + security_group_name)
+            break
 
     print("\nChoose one security group from above (0 to", j, "). Type 0 to return to submenu.")
     security_group_choice = int(input(">> "))
@@ -395,23 +395,23 @@ def addTag(region,session):
     print("Active region:",region)
     tagname = str(input("Enter tag name to filter instances >> "))
     tagvalue = str(input("Enter tag value >> "))
-    reservations,ec2_client = getEc2(region,'all',tagname,tagvalue,session)
+    instances,ec2_client = getEc2(region,'all',tagname,tagvalue,session)
 
     # If list is empty
-    if not reservations:
+    if not instances:
         print("No instances found.")
         return [],0,[],0
 
     print("\nBelow instances found with tag '" + tagname + "':'" + tagvalue + "'")
     print("No.\tInstance_ID\t\t" + tagname + "\t\tPrivate_IP_Address\t\tLaunch_Time")
     i = 0
-    for reservation in reservations:
-        for instance in reservation["Instances"]:
-            i += 1
-            instance_id = instance["InstanceId"]
-            private_ip = instance["PrivateIpAddress"]
-            launch_time = instance["LaunchTime"]
-            print(str(i) + "\t" + str(instance_id) + "\t" + tagvalue + "\t\t" + str(private_ip) + "\t\t" + str(launch_time))
+
+    for instance in instances:
+        i += 1
+        instance_id = instance["InstanceId"]
+        private_ip = instance["PrivateIpAddress"]
+        launch_time = instance["LaunchTime"]
+        print(str(i) + "\t" + str(instance_id) + "\t" + tagvalue + "\t\t" + str(private_ip) + "\t\t" + str(launch_time))
 
     print("\nChoose one instance from above list (0 to " + str(i) + "). Just type 0 to return to submenu.")
     instance_choice = input("Example: 1,3 >> ")
@@ -433,26 +433,26 @@ def addTag(region,session):
     confirm = str(input("Do you confirm ? (Type 'confirm') >> "))
     if confirm != 'confirm':
         print("You seem to be confused.")
-        return [], 0
+        return [], 0, [], 0
 
     instances_tagged = []
     number_of_instances_tagged = 0
     instances_failed_to_tag = []
     number_of_ins_failed_to_tag = 0
     i = 0
-    for reservation in reservations:
-        for instance in reservation["Instances"]:
-            i += 1
-            if str(i) in choice_list:
-                try:
-                    print("Tagging instance ", instance["InstanceId"])
-                    ec2_client.create_tags(Resources=[instance["InstanceId"]], Tags=tags_list)
-                    instances_tagged.append(instance["InstanceId"])
-                    number_of_instances_tagged += 1
-                except ClientError as e:
-                    print("ERROR:", e.response['Error']['Code'], ":", e.response['Error']['Message'])
-                    instances_failed_to_tag.append(instance['InstanceId'])
-                    number_of_ins_failed_to_tag += 1
+
+    for instance in instances:
+        i += 1
+        if str(i) in choice_list:
+            try:
+                print("Tagging instance ", instance["InstanceId"])
+                ec2_client.create_tags(Resources=[instance["InstanceId"]], Tags=tags_list)
+                instances_tagged.append(instance["InstanceId"])
+                number_of_instances_tagged += 1
+            except ClientError as e:
+                print("ERROR:", e.response['Error']['Code'], ":", e.response['Error']['Message'])
+                instances_failed_to_tag.append(instance['InstanceId'])
+                number_of_ins_failed_to_tag += 1
 
     return instances_tagged,number_of_instances_tagged,instances_failed_to_tag,number_of_ins_failed_to_tag
 
@@ -461,23 +461,23 @@ def terminateEc2(region,session):
     print("Active region:",region)
     tagname = str(input("Enter tag name >> "))
     tagvalue = str(input("Enter tag value >> "))
-    reservations,ec2_client = getEc2(region,'running',tagname,tagvalue,session)
+    instances,ec2_client = getEc2(region,'running',tagname,tagvalue,session)
 
     # If list is empty
-    if not reservations:
+    if not instances:
         print("No running instances to stop.")
         return [],0,[],0
 
     print("\nBelow instances found with tag '" + tagname + "':'" + tagvalue + "'")
     print("No.\tInstance_ID\t\t" + tagname + "\t\tPrivate_IP_Address\t\tLaunch_Time")
     i = 0
-    for reservation in reservations:
-        for instance in reservation["Instances"]:
-            i += 1
-            instance_id = instance["InstanceId"]
-            private_ip = instance["PrivateIpAddress"]
-            launch_time = instance["LaunchTime"]
-            print(str(i) + "\t" + str(instance_id) + "\t" + tagvalue + "\t\t" + str(private_ip) + "\t\t" + str(launch_time))
+
+    for instance in instances:
+        i += 1
+        instance_id = instance["InstanceId"]
+        private_ip = instance["PrivateIpAddress"]
+        launch_time = instance["LaunchTime"]
+        print(str(i) + "\t" + str(instance_id) + "\t" + tagvalue + "\t\t" + str(private_ip) + "\t\t" + str(launch_time))
 
     print("\nChoose instances to terminate from above list (0 to " + str(i) + "). Separate them by commas. Just type 0 to return to submenu.")
     instance_choice = input("Example: 1,3,4 >> ")
@@ -486,10 +486,14 @@ def terminateEc2(region,session):
     choice_list = instance_choice.rstrip().split(",")
     print("Instances to be terminated:", choice_list)
     confirm = str(input("Do you confirm ? (Type 'confirm') >> "))
-    confirm_again = str(input("WARNING: Instance termination cannot be undone. Type 'confirm' again to confirm >> "))
-    if confirm != 'confirm' or confirm_again != 'confirm':
+    if confirm != 'confirm':
         print("You seem to be confused.")
-        return [], 0
+        return [], 0, [], 0
+
+    confirm_again = str(input("WARNING: Instance termination cannot be undone. Type 'confirm' again to confirm >> "))
+    if confirm_again != 'confirm':
+        print("You seem to be confused.")
+        return [], 0, [], 0
 
     print("Terminating Instances...")
     number_of_instances_terminated = 0
@@ -498,20 +502,20 @@ def terminateEc2(region,session):
     number_of_ins_failed_to_terminate = 0
 
     i = 0
-    for reservation in reservations:
-        for instance in reservation["Instances"]:
-            i += 1
-            if str(i) in choice_list:
-                try:
-                    print("Terminating instance ", instance["InstanceId"])
-                    ec2_client.terminate_instances(InstanceIds=[instance["InstanceId"]])
-                    instances_terminated.append(instance["InstanceId"])
-                    number_of_instances_terminated += 1
-                except ClientError as e:
-                    print("ERROR:", e.response['Error']['Code'], ":", e.response['Error']['Message'])
-                    instances_failed_to_terminate.append(instance['InstanceId'])
-                    number_of_ins_failed_to_terminate += 1
-                    if e.response['Error']['Code'] == 'OperationNotPermitted':
-                        print("There are one or more instance in same AZ with instance termination protected.")
+
+    for instance in instances:
+        i += 1
+        if str(i) in choice_list:
+            try:
+                print("Terminating instance ", instance["InstanceId"])
+                ec2_client.terminate_instances(InstanceIds=[instance["InstanceId"]])
+                instances_terminated.append(instance["InstanceId"])
+                number_of_instances_terminated += 1
+            except ClientError as e:
+                print("ERROR:", e.response['Error']['Code'], ":", e.response['Error']['Message'])
+                instances_failed_to_terminate.append(instance['InstanceId'])
+                number_of_ins_failed_to_terminate += 1
+                if e.response['Error']['Code'] == 'OperationNotPermitted':
+                    print("There are one or more instance in same AZ with instance termination protected.")
 
     return instances_terminated,number_of_instances_terminated,instances_failed_to_terminate,number_of_ins_failed_to_terminate
