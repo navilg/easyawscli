@@ -53,6 +53,8 @@ def startEC2(region,session):
     print("Starting Instances...")
     instance_state_changed = 0
     instances_started = []
+    instances_failed_to_start = []
+    number_of_ins_failed_to_start = 0
 
     i = 0
     for reservation in reservations:
@@ -65,9 +67,12 @@ def startEC2(region,session):
                     instances_started.append(instance["InstanceId"])
                     instance_state_changed += 1
                 except ClientError as e:
-                    print(e.response['Error']['Message'])
+                    print("ERROR:", e.response['Error']['Code'], ":", e.response['Error']['Message'])
+                    instances_failed_to_start.append(instance['InstanceId'])
+                    number_of_ins_failed_to_start += 1
 
-    return instances_started,instance_state_changed
+
+    return instances_started,instance_state_changed,instances_failed_to_start,number_of_ins_failed_to_start
 
 
 def stopEC2(region,session):
@@ -107,6 +112,8 @@ def stopEC2(region,session):
     print("Stopping Instances...")
     instance_state_changed = 0
     instances_stopped = []
+    instances_failed_to_stop = []
+    number_of_ins_failed_to_stop = 0
 
     i = 0
     for reservation in reservations:
@@ -119,9 +126,11 @@ def stopEC2(region,session):
                     instances_stopped.append(instance["InstanceId"])
                     instance_state_changed += 1
                 except ClientError as e:
-                    print(e.response['Error']['Message'])
+                    print("ERROR:", e.response['Error']['Code'], ":", e.response['Error']['Message'])
+                    instances_failed_to_stop.append(instance['InstanceId'])
+                    number_of_ins_failed_to_stop += 1
 
-    return instances_stopped,instance_state_changed
+    return instances_stopped,instance_state_changed,instances_failed_to_stop,number_of_ins_failed_to_stop
 
 def addInboundRuleInSg(region,session):
     print("\n\n---Add inbound rule in Security Group---\n")
@@ -228,7 +237,7 @@ def addInboundRuleInSg(region,session):
         ec2_client.authorize_security_group_ingress(GroupId=security_group_id_list[security_group_choice - 1],IpPermissions=ip_perm)
         print("Inbound rule added to security group", security_group_id_list[security_group_choice - 1])
     except ClientError as e:
-        print(e.response['Error']['Message'])
+        print("ERROR:", e.response['Error']['Code'], ":", e.response['Error']['Message'])
         return ""
 
     return str(security_group_id_list[security_group_choice - 1])
@@ -376,7 +385,7 @@ def removeInboundRuleFromSg(region,session):
         ec2_client.revoke_security_group_ingress(GroupId=security_group_id_list[security_group_choice - 1],IpPermissions=ip_perm)
         print("Inbound rule removed from security group", security_group_id_list[security_group_choice - 1])
     except ClientError as e:
-        print(e.response['Error']['Message'])
+        print("ERROR:", e.response['Error']['Code'], ":", e.response['Error']['Message'])
         return ""
 
     return str(security_group_id_list[security_group_choice - 1])
@@ -428,6 +437,8 @@ def addTag(region,session):
 
     instances_tagged = []
     number_of_instances_tagged = 0
+    instances_failed_to_tag = []
+    number_of_ins_failed_to_tag = 0
     i = 0
     for reservation in reservations:
         for instance in reservation["Instances"]:
@@ -439,6 +450,70 @@ def addTag(region,session):
                     instances_tagged.append(instance["InstanceId"])
                     number_of_instances_tagged += 1
                 except ClientError as e:
-                    print(e.response['Error']['Message'])
+                    print("ERROR:", e.response['Error']['Code'], ":", e.response['Error']['Message'])
+                    instances_failed_to_tag.append(instance['InstanceId'])
+                    number_of_ins_failed_to_tag += 1
 
-    return instances_tagged,number_of_instances_tagged
+    return instances_tagged,number_of_instances_tagged,instances_failed_to_tag,number_of_ins_failed_to_tag
+
+def terminateEc2(region,session):
+    print("\n\n---Terminate EC2 Instance---\n")
+    print("Active region:",region)
+    tagname = str(input("Enter tag name >> "))
+    tagvalue = str(input("Enter tag value >> "))
+    reservations,ec2_client = getEc2(region,'running',tagname,tagvalue,session)
+
+    # If list is empty
+    if not reservations:
+        print("No running instances to stop.")
+        return [],0
+
+    print("\nBelow instances found with tag '" + tagname + "':'" + tagvalue + "'")
+    print("No.\tInstance_ID\t\t" + tagname + "\t\tPrivate_IP_Address\t\tLaunch_Time")
+    i = 0
+    for reservation in reservations:
+        for instance in reservation["Instances"]:
+            i += 1
+            instance_id = instance["InstanceId"]
+            private_ip = instance["PrivateIpAddress"]
+            launch_time = instance["LaunchTime"]
+            print(str(i) + "\t" + str(instance_id) + "\t" + tagvalue + "\t\t" + str(private_ip) + "\t\t" + str(launch_time))
+
+    print("\nChoose instances to terminate from above list (0 to " + str(i) + "). Separate them by commas. Just type 0 to return to submenu.")
+    instance_choice = input("Example: 1,3,4 >> ")
+    if instance_choice == '0':
+        return  [],0
+    choice_list = instance_choice.rstrip().split(",")
+    print("Instances to be terminated:", choice_list)
+    confirm = str(input("Do you confirm ? (Type 'confirm') >> "))
+    confirm_again = str(input("WARNING: Instance termination cannot be undone. Type 'confirm' again to confirm >> "))
+    if confirm != 'confirm' or confirm_again != 'confirm':
+        print("You seem to be confused.")
+        return [], 0
+
+    print("Terminating Instances...")
+    number_of_instances_terminated = 0
+    instances_terminated = []
+    instances_failed_to_terminate = []
+    number_of_ins_failed_to_terminate = 0
+
+    i = 0
+    for reservation in reservations:
+        for instance in reservation["Instances"]:
+            i += 1
+            if str(i) in choice_list:
+                try:
+                    print("Terminating instance ", instance["InstanceId"])
+                    ec2_client.terminate_instances(InstanceIds=[instance["InstanceId"]])
+                    instances_terminated.append(instance["InstanceId"])
+                    number_of_instances_terminated += 1
+                except ClientError as e:
+                    print("ERROR:", e.response['Error']['Code'], ":", e.response['Error']['Message'])
+                    instances_failed_to_terminate.append(instance['InstanceId'])
+                    number_of_ins_failed_to_terminate += 1
+                    if e.response['Error']['Code'] == 'OperationNotPermitted':
+                        print("There are one or more instance in same AZ with instance termination protected.")
+
+    return instances_terminated,number_of_instances_terminated,instances_failed_to_terminate,number_of_ins_failed_to_terminate
+
+                    
