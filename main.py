@@ -95,7 +95,7 @@ if __name__ == "__main__":
 
         elif choice == 0:
             exit(0)
-            
+
         else:
             print("Wrong choice")
             exit(1)
@@ -110,5 +110,3 @@ if __name__ == "__main__":
         else:
             print("Wrong choice")
             exit(1)
-
-
