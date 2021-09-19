@@ -26,7 +26,7 @@ def startEC2(region,session):
     # If list is empty
     if not reservations:
         print("No stopped instances to start.")
-        return [],0
+        return [],0,[],0
 
     print("\nBelow instances found with tag '" + tagname + "':'" + tagvalue + "'")
     print("No.\tInstance_ID\t\t" + tagname + "\t\tPrivate_IP_Address\t\tLaunch_Time")
@@ -42,13 +42,13 @@ def startEC2(region,session):
     print("\nChoose instances to start from above list (0 to "+str(i)+"). Separate them by commas. Just type 0 to return to submenu.")
     start_choice = input("Example: 1,3,4 >> ")
     if start_choice == '0':
-        return [],0
+        return [],0,[],0
     choice_list = start_choice.rstrip().split(",")
     print("Instances to start:", choice_list)
     confirm = str(input("Do you confirm ? (Type 'confirm') >> "))
     if confirm != 'confirm':
         print("You seem to be confused.")
-        return [],0
+        return [],0,[],0
     
     print("Starting Instances...")
     instance_state_changed = 0
@@ -85,7 +85,7 @@ def stopEC2(region,session):
     # If list is empty
     if not reservations:
         print("No running instances to stop.")
-        return [],0
+        return [],0,[],0
 
     print("\nBelow instances found with tag '" + tagname + "':'" + tagvalue + "'")
     print("No.\tInstance_ID\t\t" + tagname + "\t\tPrivate_IP_Address\t\tLaunch_Time")
@@ -400,7 +400,7 @@ def addTag(region,session):
     # If list is empty
     if not reservations:
         print("No instances found.")
-        return [],0
+        return [],0,[],0
 
     print("\nBelow instances found with tag '" + tagname + "':'" + tagvalue + "'")
     print("No.\tInstance_ID\t\t" + tagname + "\t\tPrivate_IP_Address\t\tLaunch_Time")
@@ -466,7 +466,7 @@ def terminateEc2(region,session):
     # If list is empty
     if not reservations:
         print("No running instances to stop.")
-        return [],0
+        return [],0,[],0
 
     print("\nBelow instances found with tag '" + tagname + "':'" + tagvalue + "'")
     print("No.\tInstance_ID\t\t" + tagname + "\t\tPrivate_IP_Address\t\tLaunch_Time")
