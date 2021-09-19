@@ -104,7 +104,7 @@ def stopEC2(region,session):
     print("\nChoose instances to stop from above list (0 to " + str(i) + "). Separate them by commas. Just type 0 to return to submenu.")
     stop_choice = input("Example: 1,3,4 >> ")
     if stop_choice == '0':
-        return  [],0
+        return  [],0,[],0
     choice_list = stop_choice.rstrip().split(",")
     print("Instances to stop:", choice_list)
     confirm = str(input("Do you confirm ? (Type 'confirm') >> "))
@@ -416,7 +416,7 @@ def addTag(region,session):
     print("\nChoose one instance from above list (0 to " + str(i) + "). Just type 0 to return to submenu.")
     instance_choice = input("Example: 1,3 >> ")
     if instance_choice == '0':
-        return  [],0
+        return  [],0,[],0
     choice_list = instance_choice.rstrip().split(",")
 
     print("Instance to be tagged:", choice_list)
@@ -461,7 +461,7 @@ def terminateEc2(region,session):
     print("Active region:",region)
     tagname = str(input("Enter tag name >> "))
     tagvalue = str(input("Enter tag value >> "))
-    instances,ec2_client = getEc2(region,'running',tagname,tagvalue,session)
+    instances,ec2_client = getEc2(region,'all',tagname,tagvalue,session)
 
     # If list is empty
     if not instances:
@@ -482,7 +482,7 @@ def terminateEc2(region,session):
     print("\nChoose instances to terminate from above list (0 to " + str(i) + "). Separate them by commas. Just type 0 to return to submenu.")
     instance_choice = input("Example: 1,3,4 >> ")
     if instance_choice == '0':
-        return  [],0
+        return  [],0,[],0
     choice_list = instance_choice.rstrip().split(",")
     print("Instances to be terminated:", choice_list)
     confirm = str(input("Do you confirm ? (Type 'confirm') >> "))
