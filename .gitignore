@@ -2,6 +2,7 @@ venv/*
 rough.txt
 .vscode
 dist
+easyawscli
 __pycache__
 build
 *.spec
