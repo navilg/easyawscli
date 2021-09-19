@@ -1,148 +1,8 @@
-#!/usr/bin/python3
-
-from os import system, name
 import boto3
 from botocore.exceptions import ClientError
-import getpass
-import requests
-# from SecureString import clearmem
+from requests import get
 
-source_code_url = "https://github.com/navilg/easyawscli"
-
-def main_menu():
-    print("\n\n---Main Menu---\n")
-    print("0. Logout\n1. Start EC2 instance\n2. Stop EC2 instance\n3. Tag an instance\n4. Add inbound rule in Security Group")
-    print("5. Remove an inbound rule from Security Group\n6. Autoscaling Group suspend process")
-    main_menu_choice = int(input("Choose from above (0 to 6) >> "))
-    
-    return main_menu_choice
-
-
-def submenu(action_name=""):
-    print("\n\n---Sub Menu---\n")
-    print("\n0. Logout\n1. Repeat '" + str(action_name) + "'\n2. Main Menu")
-    subchoice = int(input("Choose from above (0 to 2) >> "))
-
-    return subchoice
-
-
-def login():
-    print("\n\n---Login---\n")
-    region = set_region()
-    if region == "":
-        exit(0)
-
-    key = str(input("Enter AWS access key >> "))
-    try: 
-        secret = getpass.getpass(prompt='Enter AWS secret (Input text will NOT be visible) >> ')
-    except Exception as error: 
-        print('ERROR', error)
-        exit(1)
-
-    try:
-        session = boto3.Session(aws_access_key_id=key, aws_secret_access_key=secret, region_name=region)
-        # clearmem(secret)
-    except ClientError as e:
-        print(e.response['Error']['Message'])
-        # clearmem(secret)
-        exit(1)
-
-    print("Validating your credentials...")
-    try:
-        sts = session.client('sts')
-        sts.get_caller_identity()
-    except ClientError as e:
-        print(e.response['Error']['Message'])
-        print("Login failed")
-        exit(1)
-    except Exception as e:
-        print(e, ":", type(e).__name__)
-        if type(e).__name__ == "EndpointConnectionError":
-            print("'"+region+"'","may not be a valid AWS region.")
-        print("Login Failed")
-        exit(1)
-    
-    return region,session
-
-
-def set_region():
-    print("Choose one region from list below.")
-    print("------------------------------------------------------------------------------------------------------------"
-          "-------------------------------------")
-    print("|  1.  us-east-1 (N. Virginia)\t\t2.  us-east-2 (Ohio)\t\t3.  us-west-1 (N. California)\t\t4.  us-west-2 ("
-          "Oregon)\t\t|")
-    print("|  5.  af-south-1 (Cape Town)\t\t6.  ap-east-1 (Hong Kong)\t7.  ap-south-1 (Mumbai)\t\t\t8.  "
-          "ap-northeast-3 ( "
-          "Osaka)\t|")
-    print("|  9.  ap-northeast-2 (Seoul)\t\t10. ap-southeast-1 (Singapore)\t11. ap-southeast-2 (Sydney)\t\t12. "
-          "ap-northeast-1 (Tokyo)\t|")
-    print("|  13. ca-central-1 (Canada/Central)\t14. eu-central-1 (Frankfurt)\t15. eu-west-1 (Ireland)\t\t\t16. "
-          "eu-west-2 (London)\t\t|")
-    print("|  17. eu-south-1 (Milan)\t\t18. eu-west-3 (Paris)\t\t19. eu-north-1 (Stockholm)\t\t20. me-south-1 ("
-          "Bahrain)\t|")
-    print("|  21. sa-east-1 (Sao Paulo)\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t|")
-    print("------------------------------------------------------------------------------------------------------------"
-          "-------------------------------------\n")
-
-    while True:
-        try:
-            region_name = int(input("Choose a region from above (1 to 21). Type 0 to exit: "))
-        except ValueError as e:
-            print('Invalid choice')
-            continue
-        except Exception as e:
-            print("Error:", e)
-            return ""
-
-        if region_name == 1:
-            return "us-east-1"
-        elif region_name == 2:
-            return "us-east-2"
-        elif region_name == 3:
-            return "us-west-1"
-        elif region_name == 4:
-            return "us-west-2"
-        elif region_name == 5:
-            return "af-south-1"
-        elif region_name == 6:
-            return "ap-east-1"
-        elif region_name == 7:
-            return "ap-south-1"
-        elif region_name == 8:
-            return "ap-northeast-3"
-        elif region_name == 9:
-            return "ap-northeast-2"
-        elif region_name == 10:
-            return "ap-southeast-1"
-        elif region_name == 11:
-            return "ap-southeast-2"
-        elif region_name == 12:
-            return "ap-northeast-1"
-        elif region_name == 13:
-            return "ca-central-1"
-        elif region_name == 14:
-            return "eu-central-1"
-        elif region_name == 15:
-            return "eu-west-1"
-        elif region_name == 16:
-            return "eu-west-2"
-        elif region_name == 17:
-            return "eu-south-1"
-        elif region_name == 18:
-            return "eu-west-3"
-        elif region_name == 19:
-            return "eu-north-1"
-        elif region_name == 20:
-            return "me-south-1"
-        elif region_name == 21:
-            return "sa-east-1"
-        elif region_name == 0:
-            return ""
-        else:
-            print("Invalid choice.")
-
-
-def get_ec2(region,state,tagname,tagvalue,session):
+def getEc2(region,state,tagname,tagvalue,session):
     print("Searching instances with tag","'"+tagname+":", tagvalue+"'","in region", region)
     reservations = []
     ec2_obj = session.client('ec2',region_name=region)
@@ -160,7 +20,7 @@ def startEC2(region,session):
     print("Active region:",region)
     tagname = str(input("Enter tag name >> "))
     tagvalue = str(input("Enter tag value >> "))
-    reservations,ec2_obj = get_ec2(region,'stopped',tagname,tagvalue,session)
+    reservations,ec2_obj = getEc2(region,'stopped',tagname,tagvalue,session)
 
     # If list is empty
     if not reservations:
@@ -214,7 +74,7 @@ def stopEC2(region,session):
     print("Active region:",region)
     tagname = str(input("Enter tag name >> "))
     tagvalue = str(input("Enter tag value >> "))
-    reservations,ec2_obj = get_ec2(region,'running',tagname,tagvalue,session)
+    reservations,ec2_obj = getEc2(region,'running',tagname,tagvalue,session)
 
     # If list is empty
     if not reservations:
@@ -262,18 +122,13 @@ def stopEC2(region,session):
 
     return instances_stopped,instance_state_changed
 
-
-def tagInstance():
-    print("Tag Instance. Coming soon...")
-
-
-def add_inbound_rule_in_sg(region,session):
+def addInboundRuleInSg(region,session):
     print("\n\n---Add inbound rule in Security Group---\n")
     print("Active region:", region)
     print("Enter tag name and its value to filter the EC2 instances.")
     tagname = str(input("Enter tag name >> "))
     tagvalue = str(input("Enter tag value >> "))
-    reservations, ec2_obj = get_ec2(region, 'all', tagname, tagvalue, session)
+    reservations, ec2_obj = getEc2(region, 'all', tagname, tagvalue, session)
 
     # If list is empty
     if not reservations:
@@ -352,7 +207,7 @@ def add_inbound_rule_in_sg(region,session):
     print("\nEnter below details for new inbound rule.")
     ip_protocol = str(input("Enter IP Protocol (tcp/udp) >> ")).lower()
     to_port = int(input("Enter port number >> "))
-    your_public_ip = str(requests.get('http://ipinfo.io/json').json()['ip']) + "/32"
+    your_public_ip = str(get('http://ipinfo.io/json').json()['ip']) + "/32"
     ip_range = str(input("Enter CIDR IP (default: {}) >> ".format(your_public_ip)))
     description = str(input("Enter description (default: '') >> "))
 
@@ -378,13 +233,13 @@ def add_inbound_rule_in_sg(region,session):
     return str(security_group_id_list[security_group_choice - 1])
 
 
-def remove_inbound_rule_from_sg(region,session):
+def removeInboundRuleFromSg(region,session):
     print("\n\n---Remove an inbound rule from Security Group---\n")
     print("Active region:", region)
     print("Enter tag name and its value to filter the EC2 instances.")
     tagname = str(input("Enter tag name >> "))
     tagvalue = str(input("Enter tag value >> "))
-    reservations, ec2_obj = get_ec2(region, 'all', tagname, tagvalue, session)
+    reservations, ec2_obj = getEc2(region, 'all', tagname, tagvalue, session)
 
     # If list is empty
     if not reservations:
@@ -525,77 +380,5 @@ def remove_inbound_rule_from_sg(region,session):
 
     return str(security_group_id_list[security_group_choice - 1])
 
-
-def suspendProcess():
-    print("Suspend Process from autoscaling group. Coming soon...")
-
-
-def clear():
-    print("Clear")
-    # for windows 
-    if name == 'nt': 
-        _ = system('cls') 
-  
-    # for mac and linux(here, os.name is 'posix') 
-    else: 
-        _ = system('clear') 
-
-
-if __name__ == "__main__":
-    print("\t\t----------------")
-    print("\t\t| Easy AWS CLI |")
-    print("\t\t----------------")
-    print(source_code_url)
-    region,session = login()
-    print("Login successful")
-
-    choice = main_menu()
-    print(choice)
-    if choice == 0:
-        print("Exiting...")
-        exit(0)
-
-    while True:
-
-        if choice == 1:
-            action_name = 'Start EC2 instance'
-            instances_started, number_of_instance_started = startEC2(region, session)
-            print(number_of_instance_started, "Instances started", instances_started)
-        elif choice == 2:
-            action_name = 'Stop EC2 instance'
-            instances_stopped, number_of_instance_stopped = stopEC2(region, session)
-            print(number_of_instance_stopped, "Instances stopped", instances_stopped)
-        elif choice == 3:
-            action_name = 'Tag an instance'
-            tagInstance()
-        elif choice == 4:
-            action_name = 'Add inbound rule to a security group'
-            sg_updated = add_inbound_rule_in_sg(region, session)
-            if sg_updated != "":
-                print("Security Group", sg_updated, "updated.")
-        elif choice == 5:
-            action_name = 'Remove inbound rule from a security group'
-            sg_updated = remove_inbound_rule_from_sg(region, session)
-            if sg_updated != "":
-                print("Security Group", sg_updated, "updated.")
-        elif choice == 6:
-            action_name = 'Suspend autoscaling process'
-            suspendProcess()
-        elif choice == 0:
-            exit(0)
-        else:
-            print("Wrong choice")
-            exit(1)
-
-        subchoice = submenu(action_name)
-        if subchoice == 0:
-            exit(0)
-        elif subchoice == 1:
-            continue
-        elif subchoice == 2:
-            choice = main_menu()
-        else:
-            print("Wrong choice")
-            exit(1)
-
-
+def addTag():
+    pass

@@ -1,3 +1,7 @@
 venv/*
 rough.txt
 .vscode
+dist
+__pycache__
+build
+*.spec
