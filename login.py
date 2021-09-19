@@ -1,6 +1,7 @@
 import boto3
 from botocore.exceptions import ClientError
 import getpass
+from sys import exit
 
 def login():
     print("\n\n---Login---\n")

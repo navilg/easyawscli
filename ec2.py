@@ -1,6 +1,7 @@
 import boto3
 from botocore.exceptions import ClientError
 from requests import get
+from sys import exit
 
 def getEc2(region,state,tagname,tagvalue,session):
     print("Searching instances with tag","'"+tagname+":", tagvalue+"'","in region", region)
