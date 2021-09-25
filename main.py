@@ -57,7 +57,10 @@ if __name__ == "__main__":
 
     while True:
 
-        if service_choice == 1:
+        if service_choice == 0:
+            print("Exiting...")
+            exit(0)
+        elif service_choice == 1:
 
             choice = ec2Menu()
             print(choice)
@@ -121,9 +124,8 @@ if __name__ == "__main__":
                 else:
                     print("Wrong choice")
                     exit(1)
-        elif service_choice == 0:
-            print("Exiting...")
-            exit(0)
+        elif service_choice == 2:
+            print("Autoscaling Group. Coming Soon...")
         else:
             print("Wrong choice")
             exit(1)

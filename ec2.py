@@ -35,14 +35,16 @@ def startEC2(region,session):
         return [],0,[],0
 
     print("\nBelow instances found with tag '" + tagname + "':'" + tagvalue + "'")
-    print("No.\tInstance_ID\t\t" + tagname + "\t\tPrivate_IP_Address\t\tLaunch_Time")
+    print("No.\tInstance_ID\t\tState\t\t" + tagname + "\t\tPrivate_IP_Address\t\tLaunch_Time\t\tAvailability_Zone")
     i = 0
     for instance in instances:
         i += 1
         instance_id = instance["InstanceId"]
         private_ip = instance["PrivateIpAddress"]
         launch_time = instance["LaunchTime"]
-        print(str(i)+"\t"+str(instance_id)+"\t"+tagvalue+"\t\t"+str(private_ip)+"\t\t"+str(launch_time))
+        instance_state = instance["State"]["Name"]
+        instance_az = instance["Placement"]["AvailabilityZone"]
+        print(str(i)+"\t"+str(instance_id)+"\t"+instance_state+"\t\t"+tagvalue+"\t"+str(private_ip)+"\t\t"+str(launch_time)+"\t"+instance_az)
 
     print("\nChoose instances to start from above list (0 to "+str(i)+"). Separate them by commas. Just type 0 to return to submenu.")
     start_choice = input("Example: 1,3,4 >> ")
@@ -92,14 +94,16 @@ def stopEC2(region,session):
         return [],0,[],0
 
     print("\nBelow instances found with tag '" + tagname + "':'" + tagvalue + "'")
-    print("No.\tInstance_ID\t\t" + tagname + "\t\tPrivate_IP_Address\t\tLaunch_Time")
+    print("No.\tInstance_ID\t\tState\t\t" + tagname + "\t\tPrivate_IP_Address\t\tLaunch_Time\t\tAvailability_Zone")
     i = 0
     for instance in instances:
         i += 1
         instance_id = instance["InstanceId"]
         private_ip = instance["PrivateIpAddress"]
         launch_time = instance["LaunchTime"]
-        print(str(i) + "\t" + str(instance_id) + "\t" + tagvalue + "\t\t" + str(private_ip) + "\t\t" + str(launch_time))
+        instance_state = instance["State"]["Name"]
+        instance_az = instance["Placement"]["AvailabilityZone"]
+        print(str(i)+"\t"+str(instance_id)+"\t"+instance_state+"\t\t"+tagvalue+"\t"+str(private_ip)+"\t\t"+str(launch_time)+"\t"+instance_az)
 
     print("\nChoose instances to stop from above list (0 to " + str(i) + "). Separate them by commas. Just type 0 to return to submenu.")
     stop_choice = input("Example: 1,3,4 >> ")
@@ -148,7 +152,7 @@ def addInboundRuleInSg(region,session):
         return ""
 
     print("\nBelow instances found with tag '" + tagname + "':'" + tagvalue + "'")
-    print("No.\tInstance_ID\t\t" + tagname + "\t\tVPC_ID\t\tPrivate_IP_Address\t\tLaunch_Time")
+    print("No.\tInstance_ID\t\tState\t\t" + tagname + "\t\tVPC_ID\t\tPrivate_IP_Address\tLaunch_Time\t\tAvailability_Zone")
     i = 0
     for instance in instances:
         i += 1
@@ -156,7 +160,9 @@ def addInboundRuleInSg(region,session):
         private_ip = instance["PrivateIpAddress"]
         launch_time = instance["LaunchTime"]
         vpc_id = instance["VpcId"]
-        print(str(i) + "\t" + str(instance_id) + "\t" + tagvalue + "\t\t" + str(vpc_id) + "\t\t" + str(private_ip) + "\t\t" + str(launch_time))
+        instance_state = instance["State"]["Name"]
+        instance_az = instance["Placement"]["AvailabilityZone"]
+        print(str(i) + "\t" + str(instance_id) + "\t" + instance_state + "\t\t" + tagvalue + "\t" + str(vpc_id) + "\t" + str(private_ip) + "\t" + str(launch_time) + "\t" + instance_az)
 
 
     print("\nChoose one instances from above list (0 to " + str(i) + "). 0 to return to submenu")
@@ -258,7 +264,7 @@ def removeInboundRuleFromSg(region,session):
         return ""
 
     print("\nBelow instances found with tag '" + tagname + "':'" + tagvalue + "'")
-    print("No.\tInstance_ID\t\t" + tagname + "\t\tVPC_ID\t\tPrivate_IP_Address\t\tLaunch_Time")
+    print("No.\tInstance_ID\t\tState\t\t" + tagname + "\t\tVPC_ID\t\tPrivate_IP_Address\tLaunch_Time\t\tAvailability_Zone")
     i = 0
     for instance in instances:
         i += 1
@@ -266,8 +272,9 @@ def removeInboundRuleFromSg(region,session):
         private_ip = instance["PrivateIpAddress"]
         launch_time = instance["LaunchTime"]
         vpc_id = instance["VpcId"]
-        print(str(i) + "\t" + str(instance_id) + "\t" + tagvalue + "\t\t" + str(vpc_id) + "\t\t" + str(
-            private_ip) + "\t\t" + str(launch_time))
+        instance_state = instance["State"]["Name"]
+        instance_az = instance["Placement"]["AvailabilityZone"]
+        print(str(i) + "\t" + str(instance_id) + "\t" + instance_state + "\t\t" + tagvalue + "\t" + str(vpc_id) + "\t" + str(private_ip) + "\t" + str(launch_time) + "\t" + instance_az)
 
     print("\nChoose one instances from above list (0 to " + str(i) + "). 0 to return to submenu")
     instance_choice = int(input("Example: 3 >> "))
@@ -403,7 +410,7 @@ def addTag(region,session):
         return [],0,[],0
 
     print("\nBelow instances found with tag '" + tagname + "':'" + tagvalue + "'")
-    print("No.\tInstance_ID\t\t" + tagname + "\t\tPrivate_IP_Address\t\tLaunch_Time")
+    print("No.\tInstance_ID\t\tState\t\t" + tagname + "\t\tPrivate_IP_Address\t\tLaunch_Time\t\tAvailability_Zone")
     i = 0
 
     for instance in instances:
@@ -411,7 +418,9 @@ def addTag(region,session):
         instance_id = instance["InstanceId"]
         private_ip = instance["PrivateIpAddress"]
         launch_time = instance["LaunchTime"]
-        print(str(i) + "\t" + str(instance_id) + "\t" + tagvalue + "\t\t" + str(private_ip) + "\t\t" + str(launch_time))
+        instance_state = instance["State"]["Name"]
+        instance_az = instance["Placement"]["AvailabilityZone"]
+        print(str(i)+"\t"+str(instance_id)+"\t"+instance_state+"\t\t"+tagvalue+"\t"+str(private_ip)+"\t\t"+str(launch_time)+"\t"+instance_az)
 
     print("\nChoose one instance from above list (0 to " + str(i) + "). Just type 0 to return to submenu.")
     instance_choice = input("Example: 1,3 >> ")
@@ -469,7 +478,7 @@ def terminateEc2(region,session):
         return [],0,[],0
 
     print("\nBelow instances found with tag '" + tagname + "':'" + tagvalue + "'")
-    print("No.\tInstance_ID\t\t" + tagname + "\t\tPrivate_IP_Address\t\tLaunch_Time")
+    print("No.\tInstance_ID\t\tState\t\t" + tagname + "\t\tPrivate_IP_Address\t\tLaunch_Time\t\tAvailability_Zone")
     i = 0
 
     for instance in instances:
@@ -477,7 +486,9 @@ def terminateEc2(region,session):
         instance_id = instance["InstanceId"]
         private_ip = instance["PrivateIpAddress"]
         launch_time = instance["LaunchTime"]
-        print(str(i) + "\t" + str(instance_id) + "\t" + tagvalue + "\t\t" + str(private_ip) + "\t\t" + str(launch_time))
+        instance_state = instance["State"]["Name"]
+        instance_az = instance["Placement"]["AvailabilityZone"]
+        print(str(i)+"\t"+str(instance_id)+"\t"+instance_state+"\t\t"+tagvalue+"\t"+str(private_ip)+"\t\t"+str(launch_time)+"\t"+instance_az)
 
     print("\nChoose instances to terminate from above list (0 to " + str(i) + "). Separate them by commas. Just type 0 to return to submenu.")
     instance_choice = input("Example: 1,3,4 >> ")
