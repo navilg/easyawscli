@@ -20,7 +20,7 @@ def login():
         session = boto3.Session(aws_access_key_id=key, aws_secret_access_key=secret, region_name=region)
         # clearmem(secret)
     except ClientError as e:
-        print(e.response['Error']['Message'])
+        print("ERROR:", e.response['Error']['Code'], ":", e.response['Error']['Message'])
         # clearmem(secret)
         exit(1)
 
@@ -29,7 +29,7 @@ def login():
         sts = session.client('sts')
         sts.get_caller_identity()
     except ClientError as e:
-        print(e.response['Error']['Message'])
+        print("ERROR:", e.response['Error']['Code'], ":", e.response['Error']['Message'])
         print("Login failed")
         exit(1)
     except Exception as e:
