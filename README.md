@@ -18,6 +18,9 @@ And script will lead your way.
 
 Know how to create AWS access key here: https://docs.aws.amazon.com/general/latest/gr/aws-sec-cred-types.html#access-keys-and-secret-access-keys
 
+Use policy [easyawscli-aws-policy.json](easyawscli-aws-policy.json) to create a new policy for easyawscli and 
+add it to your user's permission.
+
 ### Note:
 
 Pasting secret text in `Windows powershell` or `Command prompt` with `Shift+insert` or `ctrl+v` doesn't work.
