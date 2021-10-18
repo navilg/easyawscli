@@ -224,7 +224,7 @@ def addInboundRuleInSg(region,session):
     print("\nEnter below details for new inbound rule.")
     ip_protocol = str(input("Enter IP Protocol (tcp/udp) >> ")).lower()
     to_port = int(input("Enter port number >> "))
-    your_public_ip = str(get('http://ipinfo.io/json').json()['ip']) + "/32"
+    your_public_ip = str(get('https://ipinfo.io/json').json()['ip']) + "/32"
     ip_range = str(input("Enter CIDR IP (default: {}) >> ".format(your_public_ip)))
     description = str(input("Enter description (default: '') >> "))
 
