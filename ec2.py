@@ -224,7 +224,7 @@ def addInboundRuleInSg(region,session):
     print("\nEnter below details for new inbound rule.")
     ip_protocol = str(input("Enter IP Protocol (tcp/udp) >> ")).lower()
     to_port = int(input("Enter port number >> "))
-    your_public_ip = str(get('http://ipinfo.io/json').json()['ip']) + "/32"
+    your_public_ip = str(get('https://ipinfo.io/json').json()['ip']) + "/32"
     ip_range = str(input("Enter CIDR IP (default: {}) >> ".format(your_public_ip)))
     description = str(input("Enter description (default: '') >> "))
 
@@ -368,7 +368,7 @@ def removeInboundRuleFromSg(region,session):
         if source_choice == 0:
             return ""
 
-        if description_list == '':
+        if not description_list:
             ip_perm = [{'IpProtocol': ip_protocol_list[inbound_rule_choice - 1],
                         'ToPort': to_port_list[inbound_rule_choice - 1],
                         'FromPort': to_port_list[inbound_rule_choice - 1],
