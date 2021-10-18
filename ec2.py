@@ -368,7 +368,7 @@ def removeInboundRuleFromSg(region,session):
         if source_choice == 0:
             return ""
 
-        if description_list == '':
+        if not description_list:
             ip_perm = [{'IpProtocol': ip_protocol_list[inbound_rule_choice - 1],
                         'ToPort': to_port_list[inbound_rule_choice - 1],
                         'FromPort': to_port_list[inbound_rule_choice - 1],
